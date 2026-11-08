@@ -29,6 +29,13 @@
   --bg:#0E1020; --surface:#171A2D; --sunk:#202440; --ink:#E7E9F5; --muted:#9CA1BF; --line:#2B3050;
   --accent:#8FA2FF; --accent-ink:#0E1020; --accent-soft:#252C55;
   --warn:#F2B552; --warn-soft:#3A2C12; --ok:#62D394; --ok-soft:#173526; color-scheme:dark}}
+/* One Piece: mesmo layout, acento vermelho para deixar claro em qual Liga o lote vai entrar */
+body[data-game="op"]{--accent:#B8322A;--accent-soft:#F8DEDA}
+@media (prefers-color-scheme: dark){body[data-game="op"]{--accent:#FF8F80;--accent-ink:#1A0E0C;--accent-soft:#45201C}}
+.games{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:12px;background:var(--sunk);border:1px solid var(--line)}
+.games button{min-height:42px;border:0;border-radius:9px;background:none;font-weight:600;cursor:pointer;color:var(--muted)}
+.games button[aria-pressed="true"]{background:var(--surface);color:var(--accent);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.band.code{bottom:1.5%;height:12%;left:50%}
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body);padding-top:env(safe-area-inset-top,0px)}
@@ -117,6 +124,8 @@ input::placeholder{color:var(--muted)}
 .note{font-size:13px;padding:10px 12px;border-radius:9px;background:var(--warn-soft)}
 .note b{color:var(--warn)}
 .hint{font-size:12.5px;color:var(--warn)}
+details.more{margin-top:8px}
+details.more summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:13.5px;margin-bottom:8px}
 
 .batch-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
 .list{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
@@ -148,12 +157,17 @@ details.raw textarea{width:100%;height:160px;margin-top:8px;font:12px/1.45 var(-
 <div class="wrap">
   <header class="top">
     <div>
-      <div class="eyebrow">LigaPokemon · importação de coleção</div>
+      <div class="eyebrow" id="eyebrow">LigaPokemon · importação de coleção</div>
       <h1>Scanner Liga</h1>
-      <p>Encaixe a carta na moldura, leia o número e o nome, e baixe o lote em CSV para importar na Liga.</p>
+      <p id="intro">Encaixe a carta na moldura, leia o número e o nome, e baixe o lote em CSV para importar na Liga.</p>
     </div>
     <div class="tally"><b class="mono" id="tCards">0</b><span class="muted" id="tRows">cartas no lote</span></div>
   </header>
+
+  <div class="games" role="group" aria-label="Jogo">
+    <button type="button" data-game="pk" aria-pressed="true">Pokémon</button>
+    <button type="button" data-game="op" aria-pressed="false">One Piece</button>
+  </div>
 
   <section class="panel" aria-labelledby="h-add">
     <h2 id="h-add" class="eyebrow" style="font-family:var(--f-body)">Adicionar carta</h2>
@@ -167,10 +181,11 @@ details.raw textarea{width:100%;height:160px;margin-top:8px;font:12px/1.45 var(-
       <div class="cam" id="cam">
         <video id="video" playsinline muted autoplay></video>
         <div class="frame" id="frame">
-          <div class="band name"><span>Nome</span></div>
-          <div class="band num"><span>Sigla e número</span></div>
+          <div class="band name" data-only="pk"><span>Nome</span></div>
+          <div class="band num" data-only="pk"><span>Sigla e número</span></div>
+          <div class="band code" data-only="op"><span>Código</span></div>
         </div>
-        <div class="camhint">Carta inteira dentro da moldura, sem reflexo na faixa de baixo</div>
+        <div class="camhint" id="camhint">Carta inteira dentro da moldura, sem reflexo na faixa de baixo</div>
       </div>
       <div class="camrow" style="margin-top:10px">
         <button class="ghost" id="closeCam" type="button">Fechar</button>
@@ -185,7 +200,7 @@ details.raw textarea{width:100%;height:160px;margin-top:8px;font:12px/1.45 var(-
 
     <div class="or">ou busque</div>
     <div class="field">
-      <label for="q">Número, sigla, nome ou coleção</label>
+      <label for="q" id="qLabel">Número, sigla, nome ou coleção</label>
       <input type="search" id="q" placeholder="4/102, MEW 063, Charizard base" autocomplete="off" disabled>
     </div>
     <div class="results" id="results" hidden></div>
@@ -222,6 +237,7 @@ details.raw textarea{width:100%;height:160px;margin-top:8px;font:12px/1.45 var(-
 
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
 <script src="core.js"></script>
+<script src="core-op.js"></script>
 <script>
 "use strict";
 const C = window.LigaCore;
@@ -229,24 +245,84 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const QUALS = ["M", "NM", "SP", "MP", "HP", "D"];
 const LANGS = [["BR","Português"],["EN","Inglês"],["JP","Japonês"],["ES","Espanhol"],["FR","Francês"],["DE","Alemão"],["IT","Italiano"],["KO","Coreano"],["","Não informar"]];
-const EXTS = [["","Normal"],["Reverse Foil","Reverse Foil"],["Foil","Foil"],["Foil, Promo","Foil, Promo"]];
+/* Extras aceitos pela Liga, na ordem em que aparecem no CSV; os primeiros ficam sempre visíveis */
+const EXTRAS_MAIN = ["Foil", "Reverse Foil", "Promo", "Pre Release", "Edition One", "Master Ball", "Pokeball Foil"];
+const EXTRAS_MORE = ["Shadowless", "Textless", "Shattered Holo", "Staff", "Oversize", "Misprint", "Assinada", "Alterada"];
+const EXTRAS = EXTRAS_MAIN.concat(EXTRAS_MORE);
+/* One Piece: o único extra visto nos exports da LigaOnePiece é Foil (e Promo) */
+const EXTRAS_OP_MAIN = ["Foil", "Promo"], EXTRAS_OP_MORE = ["Assinada", "Alterada", "Misprint"];
+const exMain = () => GAME === "op" ? EXTRAS_OP_MAIN : EXTRAS_MAIN;
+const exMore = () => GAME === "op" ? EXTRAS_OP_MORE : EXTRAS_MORE;
+const exAll = () => exMain().concat(exMore());
 
 /* ---------- armazenamento local ---------- */
 function load(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
 function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
-let batch = load("ligaScanner.batch.v1", []);
-let prefs = load("ligaScanner.prefs.v1", { qual: "NM", lang: "BR" });
+const O = window.LigaOP;
+/* Cada jogo tem o próprio lote e as próprias preferências, porque vão para sites diferentes da Liga */
+const GAMES = {
+  pk: { batchKey: "ligaScanner.batch.v1", prefsKey: "ligaScanner.prefs.v1", defLang: "BR", site: "LigaPokemon", file: "lote-liga",
+        catalog: "catalog.json", intro: "Encaixe a carta na moldura, leia o número e o nome, e baixe o lote em CSV para importar na Liga.",
+        qLabel: "Número, sigla, nome ou coleção", qPh: "4/102, MEW 063, Charizard base", hint: "Carta inteira dentro da moldura, sem reflexo na faixa de baixo" },
+  op: { batchKey: "ligaScanner.batch.op.v1", prefsKey: "ligaScanner.prefs.op.v1", defLang: "EN", site: "LigaOnePiece", file: "lote-ligaonepiece",
+        catalog: "catalog-op.json", intro: "Encaixe a carta na moldura, leia o código do canto inferior direito e baixe o lote em CSV para importar na Liga.",
+        qLabel: "Código, nome ou edição", qPh: "OP07-038, P-045, OP-07-PR luffy", hint: "Carta inteira dentro da moldura, com o código bem iluminado" }
+};
+let GAME = load("ligaScanner.game", "pk") === "op" ? "op" : "pk";
+const G = () => GAMES[GAME];
+let batch = load(G().batchKey, []);
+let prefs = load(G().prefsKey, { qual: "NM", lang: G().defLang });
 let sigOverrides = load("ligaScanner.sigs.v1", {});
-let IDX = null;
+let IDX = null, OPX = null;
+const loading = {};
 
-/* ---------- catálogo ---------- */
-fetch("catalog.json").then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(cat => {
-  IDX = C.buildIndex(cat);
-  $("catInfo").textContent = `Catálogo: ${IDX.cards.length.toLocaleString("pt-BR")} cartas de ${IDX.sets.length} coleções (TCGdex), com os nomes da Liga nas coleções do seu export. O lote fica salvo neste aparelho.`;
-  $("openCam").disabled = false; $("openCamTxt").textContent = "Abrir câmera"; $("q").disabled = false;
-}).catch(() => {
-  $("openCamTxt").textContent = "Catálogo não carregou";
-  setStatus(`O arquivo catalog.json não foi encontrado. Ele precisa estar na mesma pasta do index.html.`, "warn");
+/* ---------- catálogo (o de One Piece só é baixado quando o jogo é escolhido) ---------- */
+function loadCatalog(game) {
+  if (loading[game]) return loading[game];
+  loading[game] = fetch(GAMES[game].catalog).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(cat => {
+    if (game === "pk") IDX = C.buildIndex(cat);
+    else { OPX = O.buildIndex(cat); OPX.codes = new Set(OPX.byBase.keys()); }
+    if (game === GAME) refreshReady();
+  }).catch(() => {
+    loading[game] = null;
+    if (game === GAME) {
+      $("openCamTxt").textContent = "Catálogo não carregou";
+      setStatus(`O arquivo ${esc(GAMES[game].catalog)} não foi encontrado. Ele precisa estar na mesma pasta do index.html.`, "warn");
+    }
+  });
+  return loading[game];
+}
+const ready = () => GAME === "op" ? !!OPX : !!IDX;
+function refreshReady() {
+  const ok = ready();
+  $("openCam").disabled = !ok; $("q").disabled = !ok;
+  $("openCamTxt").textContent = ok ? "Abrir câmera" : "Carregando catálogo…";
+  if (!ok) return;
+  if (GAME === "op") {
+    const conf = OPX.cards.filter(c => c.ok).length;
+    $("catInfo").textContent = `Catálogo: ${OPX.cards.length.toLocaleString("pt-BR")} cartas em ${OPX.sets.length} edições da LigaOnePiece (${conf.toLocaleString("pt-BR")} conferidas nos seus exports, o resto da base oficial da Bandai). O lote fica salvo neste aparelho.`;
+  } else {
+    $("catInfo").textContent = `Catálogo: ${IDX.cards.length.toLocaleString("pt-BR")} cartas de ${IDX.sets.length} coleções (TCGdex), com os nomes da Liga nas coleções do seu export. O lote fica salvo neste aparelho.`;
+  }
+}
+
+/* ---------- troca de jogo ---------- */
+function applyGame() {
+  const g = G();
+  document.body.dataset.game = GAME;
+  document.querySelectorAll(".games button").forEach(b => b.setAttribute("aria-pressed", b.dataset.game === GAME));
+  document.querySelectorAll("[data-only]").forEach(el => { el.hidden = el.dataset.only !== GAME; });
+  $("eyebrow").textContent = `${g.site} · importação de coleção`;
+  $("intro").textContent = g.intro; $("qLabel").textContent = g.qLabel; $("q").placeholder = g.qPh; $("camhint").textContent = g.hint;
+  refreshReady();
+  loadCatalog(GAME);
+}
+document.querySelector(".games").addEventListener("click", e => {
+  const b = e.target.closest("[data-game]"); if (!b || b.dataset.game === GAME || reading) return;
+  GAME = b.dataset.game; save("ligaScanner.game", GAME);
+  batch = load(G().batchKey, []); prefs = load(G().prefsKey, { qual: "NM", lang: G().defLang });
+  closePick(); renderResults(null); setStatus(null); $("q").value = ""; $("confirmClear").hidden = true;
+  applyGame(); renderBatch();
 });
 
 /* ---------- OCR (Tesseract) ---------- */
@@ -334,11 +410,12 @@ function band(card, x0, y0, x1, y1, scale, invert) {
 
 let reading = false;
 async function readCard(card) {
-  if (reading || !IDX) return;
+  if (reading || !ready()) return;
   reading = true; $("snap").disabled = true;
   closePick(); renderResults(null);
   setBusy("Lendo a carta…");
   try {
+    if (GAME === "op") { await readCardOP(card); return; }
     const w = await getWorker();
     setBusy("Lendo a carta…");
     const numBand = band(card, 0, 0.875, 1, 0.99, 2, false);
@@ -377,6 +454,37 @@ function showReading(numBand, nameBand, p, bt, tt, r) {
     </details>`, r.auto || r.ranked.length ? "" : "warn");
   const crops = $("crops"); crops.append(nameBand, numBand);
 }
+/* One Piece: o código impresso (OP07-038, ST14-001, P-045) já diz a coleção e o número.
+   Tenta o canto inferior direito, depois o mesmo recorte invertido, depois a faixa de baixo inteira. */
+async function readCardOP(card) {
+  const w = await getWorker();
+  setBusy("Lendo o código…");
+  await w.setParameters({ tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789- ", tessedit_pageseg_mode: "6" });
+  const tries = [[0.45, 0.85, 1, 0.995, 3, false], [0.45, 0.85, 1, 0.995, 3, true], [0, 0.78, 1, 1, 2, false]];
+  let hit = null, text = "", crop = null;
+  const seen = [];
+  for (const [x0, y0, x1, y1, sc, inv] of tries) {
+    crop = band(card, x0, y0, x1, y1, sc, inv);
+    text = (await w.recognize(crop)).data.text;
+    seen.push(text.trim());
+    const h = O.parseCode(text, OPX.codes);
+    if (h && (!hit || h.score > hit.score)) hit = h;
+    if (hit && hit.known) break;
+  }
+  const cands = hit && hit.known ? O.candidates(OPX, hit.code) : [];
+  const msg = cands.length ? `Encontrada: <b>${esc(cands[0].name)}</b> · ${esc(cands[0].set.en)}${cands.length > 1 ? ` · ${cands.length} versões na Liga` : ""}`
+    : hit ? `Li <b class="mono">${esc(hit.code)}</b>, mas esse código não está no catálogo. Confira na busca ou adicione manualmente.`
+    : `Não achei o código. Tente outra foto com mais luz no canto de baixo, ou use a busca.`;
+  setStatus(`<div>${cands.length ? `<b class="mono">${esc(hit.code)}</b> · ` : ""}${msg}</div>
+    <details><summary>Ver o que o leitor viu</summary>
+      <div class="crops" id="crops"></div>
+      <pre>${esc(seen.map((t, i) => `Tentativa ${i + 1}: ${t || "(vazio)"}`).join("\n"))}</pre>
+    </details>`, cands.length ? "" : "warn");
+  $("crops").append(crop);
+  if (cands.length) openPickOP(cands[0]);
+  else if (hit) { $("q").value = hit.code; renderResults(O.search(OPX, hit.code, 40)); }
+}
+
 function setBusy(t) { setStatus(`<div><span class="spin"></span>${esc(t)}</div>`); }
 function setStatus(html, cls) { const s = $("status"); if (!html) { s.hidden = true; s.innerHTML = ""; return; } s.className = "status" + (cls ? " " + cls : ""); s.innerHTML = html; s.hidden = false; }
 
@@ -386,17 +494,28 @@ function renderResults(list, read) {
   const box = $("results"); lastResults = list || []; lastRead = read || null;
   if (!list) { box.hidden = true; box.innerHTML = ""; return; }
   box.hidden = false;
+  if (GAME === "op") {
+    box.innerHTML = list.length ? list.map((c, i) => `<button class="res" type="button" data-i="${i}">
+      <span class="code">${esc(c.num)}</span>
+      <span class="nm"><b>${esc(c.name)}</b><span>${esc(O.label(OPX, c))} · ${esc(c.set.sig)}${c.ok ? "" : " · não conferida"}</span></span>
+      <span class="tag">${esc(c.rar)}</span></button>`).join("")
+      : `<div class="res" style="cursor:default"><span></span><span class="nm muted">Nada encontrado.</span><span></span></div>`;
+    return;
+  }
   box.innerHTML = list.length ? list.map((c, i) => {
     const L = C.ligaInfo(IDX, c, sigOverrides);
     return `<button class="res" type="button" data-i="${i}">
       <span class="code">${esc(L.sig)} ${esc(L.num)}</span>
-      <span class="nm"><b>${esc(L.pt)}</b><span>${esc(c.set.en)}${c.set.official ? " · " + c.set.official + " cartas" : ""} · ${esc(c.set.rel.slice(0, 4))}</span></span>
+      <span class="nm"><b>${esc(L.pt)}</b><span>${c.set.jp && c.en ? esc(c.ja) + " · " : ""}${esc(c.set.en)}${c.set.jp ? " (" + esc(c.set.code) + ")" : ""}${c.set.official ? " · " + c.set.official + " cartas" : ""} · ${esc(c.set.rel.slice(0, 4))}</span></span>
       <span class="tag">${esc(c.set.serie.split(" ")[0])}</span></button>`;
   }).join("") : `<div class="res" style="cursor:default"><span></span><span class="nm muted">Nada encontrado.</span><span></span></div>`;
 }
 let qTimer;
-$("q").addEventListener("input", e => { clearTimeout(qTimer); const v = e.target.value; qTimer = setTimeout(() => renderResults(v.trim() ? C.search(IDX, v, 40) : null), 150); });
-$("results").addEventListener("click", e => { const b = e.target.closest("[data-i]"); if (b) openPick(lastResults[+b.dataset.i], lastRead); });
+$("q").addEventListener("input", e => { clearTimeout(qTimer); const v = e.target.value; qTimer = setTimeout(() => renderResults(!v.trim() || !ready() ? null : GAME === "op" ? O.search(OPX, v, 40) : C.search(IDX, v, 40)), 150); });
+$("results").addEventListener("click", e => {
+  const b = e.target.closest("[data-i]"); if (!b) return;
+  if (GAME === "op") openPickOP(lastResults[+b.dataset.i]); else openPick(lastResults[+b.dataset.i], lastRead);
+});
 $("manualBtn").onclick = () => openPick(null, null);
 
 /* ---------- carta escolhida ---------- */
@@ -404,95 +523,187 @@ let pick = null;
 function openPick(card, read) {
   const L = card ? C.ligaInfo(IDX, card, sigOverrides) : null;
   pick = {
-    card, custom: !card, setId: card ? card.set.id : null, defaultSig: card ? (card.set.sig || card.set.id.toUpperCase()) : "",
+    card, custom: !card, setId: card ? card.set.id : null, defaultSig: card ? C.ligaInfo(IDX, card, {}).sig : "",
+    vers: card ? C.versions(IDX, card) : [], ver: "", exts: [],
     sig: L ? L.sig : "", num: L ? L.num : "", ed: L ? L.ed : "", edEn: L ? L.edEn : "", pt: L ? L.pt : "", en: L ? L.en : "",
     rar: L ? L.rar : "", cor: L ? L.cor : "", tot: L ? L.tot : "", verified: L ? L.verified : false,
-    ext: "", qual: prefs.qual, lang: (read && read.langCode) || prefs.lang, qty: 1
+    ext: "", qual: prefs.qual, lang: (read && read.langCode) || (card && card.set.jp ? "JP" : prefs.lang), qty: 1, jpOnly: L ? !!L.jpOnly : false
   };
   renderPick();
   $("pick").hidden = false;
   $("pick").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
 }
 const segHTML = (name, opts, val) => `<div class="seg" role="group" data-seg="${name}">${opts.map(([v, l]) => `<button type="button" data-v="${esc(v)}" aria-pressed="${v === val}">${esc(l)}</button>`).join("")}</div>`;
+const extrasHTML = (list, sel) => `<div class="seg" role="group" data-multi="1">${list.map(x => `<button type="button" data-x="${esc(x)}" aria-pressed="${sel.includes(x)}">${esc(x)}</button>`).join("")}</div>`;
+function refreshPickNumbers() {
+  const L = C.ligaInfo(IDX, pick.card, sigOverrides, pick.ver);
+  Object.assign(pick, { sig: L.sig, num: L.num, ed: L.ed, edEn: L.edEn });
+  const strip = $("pick").querySelector(".strip .mono");
+  if (strip) strip.textContent = `${pick.sig} · ${pick.num}${pick.tot ? "/" + pick.tot : ""}`;
+  const si = $("pSig"); if (si) si.value = pick.sig;
+}
 function renderPick() {
   const p = pick, c = p.card;
   $("pick").innerHTML = `<div class="picked">
     <div class="strip"><span class="mono">${esc(p.sig || "???")} · ${esc(p.num || "—")}${p.tot ? "/" + esc(p.tot) : ""}</span>
-      ${p.custom ? '<span class="tag flag">manual · conferir</span>' : p.verified ? '<span class="tag good">nome da Liga</span>' : `<span class="tag">${esc(c.set.en)}</span>`}</div>
+      ${p.custom ? '<span class="tag flag">manual · conferir</span>' : p.verified ? '<span class="tag good">sigla da Liga</span>' : `<span class="tag">${esc(c.set.en)}</span>`}</div>
     <div class="body">
-      ${p.custom ? `<div class="note"><b>Entrada manual.</b> Use para cartas fora do catálogo, como as japonesas. Preencha como aparece na Liga.</div>
+      ${p.custom && GAME === "op" ? `<div class="note"><b>Entrada manual.</b> Preencha como aparece na LigaOnePiece: a sigla da edição (ex.: OP-07-PR) e o Card # (ex.: OP07-038-PA).</div>
         <div class="grid2">
-          <div class="field"><label for="cSig">Sigla</label><input type="text" id="cSig" autocapitalize="characters" value=""></div>
+          <div class="field"><label for="cSig">Sigla da edição</label><input type="text" id="cSig" autocapitalize="characters" autocorrect="off" spellcheck="false" value=""></div>
+          <div class="field"><label for="cNum">Card #</label><input type="text" id="cNum" autocapitalize="characters" autocorrect="off" spellcheck="false" value="${esc(p.num)}"></div>
+        </div>
+        <div class="field"><label for="cEn">Nome da carta</label><input type="text" id="cEn" value=""></div>
+        <div class="field"><label for="cEd">Edição (opcional)</label><input type="text" id="cEd" value=""></div>`
+      : p.custom ? `<div class="note"><b>Entrada manual.</b> Use para cartas fora do catálogo, como as japonesas. Preencha como aparece na Liga.</div>
+        <div class="grid2">
+          <div class="field"><label for="cSig">Sigla</label><input type="text" id="cSig" autocapitalize="off" autocorrect="off" spellcheck="false" value=""></div>
           <div class="field"><label for="cNum">Número</label><input type="text" id="cNum" value=""></div>
         </div>
         <div class="field"><label for="cPt">Nome (PT)</label><input type="text" id="cPt" value=""></div>
         <div class="field"><label for="cEn">Nome (EN)</label><input type="text" id="cEn" value=""></div>
         <div class="field"><label for="cEd">Coleção (opcional)</label><input type="text" id="cEd" value=""></div>`
-      : `<div class="cardname">${esc(p.pt)}${p.en !== p.pt ? `<small>${esc(p.en)}</small>` : ""}<small>${esc(c.set.pt || c.set.en)} · ${esc(c.set.rel.slice(0, 4))}</small></div>
-        <div class="field"><label for="pSig">Sigla na Liga</label><input type="text" id="pSig" value="${esc(p.sig)}" autocapitalize="characters">${c.set.ligaSig || p.verified ? "" : `<span class="hint">Sigla ainda não confirmada na Liga. Confira na página da coleção antes de importar.</span>`}</div>`}
-      <div class="field"><span class="lbl">Acabamento</span>${segHTML("ext", EXTS, p.ext)}</div>
+      : `<div class="cardname">${esc(p.pt)}${p.en !== p.pt ? `<small>${esc(p.en)}</small>` : ""}${c.set.jp && c.en ? `<small>${esc(c.ja)}</small>` : ""}<small>${esc(c.set.pt || c.set.en)}${c.set.jp ? " · " + esc(c.set.code) : ""} · ${esc(c.set.rel.slice(0, 4))}</small></div>
+        ${p.jpOnly ? `<div class="field"><label for="pEn">Nome em inglês</label><input type="text" id="pEn" value="" placeholder="Ex.: Ultra Ball"><span class="hint">Não temos o nome em inglês desta carta. Se souber, preencha; se não, vai com o nome em japonês.</span></div>` : ""}
+        <div class="field"><label for="pSig">Sigla na Liga</label><input type="text" id="pSig" value="${esc(p.sig)}" autocapitalize="off" autocorrect="off" spellcheck="false">${p.verified ? "" : `<span class="hint">Sigla ainda não confirmada na Liga. Confira na página da coleção antes de importar.</span>`}</div>
+        ${p.vers.length ? `<div class="field"><span class="lbl">Versão na Liga</span>${segHTML("ver", [["", "Normal"]].concat(p.vers.map(v => [v.sig, v.label])), p.ver)}</div>` : ""}`}
+      ${commonPickHTML(p)}
+    </div></div>`;
+}
+/* Extras, qualidade, idioma, quantidade e botões: iguais nos dois jogos */
+function commonPickHTML(p) {
+  return `<div class="field"><span class="lbl">Extras</span>${extrasHTML(exMain(), p.exts)}
+        <details class="more"${p.exts.some(x => exMore().includes(x)) ? " open" : ""}><summary>Mais extras</summary>${extrasHTML(exMore(), p.exts)}</details></div>
       <div class="field"><span class="lbl">Qualidade</span>${segHTML("qual", QUALS.map(q => [q, q]), p.qual)}</div>
       <div class="grid2">
         <div class="field"><label for="pLang">Idioma</label><select id="pLang">${LANGS.map(([v, l]) => `<option value="${v}"${v === p.lang ? " selected" : ""}>${l}</option>`).join("")}</select></div>
         <div class="field"><span class="lbl">Quantidade</span><div class="stepper"><button type="button" data-step="-1" aria-label="Menos">−</button><output id="pQty">${p.qty}</output><button type="button" data-step="1" aria-label="Mais">+</button></div></div>
       </div>
-      <div class="row-actions"><button class="btn" id="pCancel" type="button">Cancelar</button><button class="btn primary" id="pAdd" type="button">Adicionar ao lote</button></div>
+      <div class="row-actions"><button class="btn" id="pCancel" type="button">Cancelar</button><button class="btn primary" id="pAdd" type="button">Adicionar ao lote</button></div>`;
+}
+
+/* ---------- carta escolhida: One Piece ---------- */
+function openPickOP(card) {
+  const cands = O.candidates(OPX, card.base);
+  pick = { game: "op", card, cands, exts: [], qual: prefs.qual, lang: card.num.endsWith("-JP") ? "JP" : prefs.lang, qty: 1, ...O.rowOf(card) };
+  renderPickOP();
+  $("pick").hidden = false;
+  $("pick").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+}
+function renderPickOP() {
+  const p = pick, c = p.card, miss = O.missingAlts(OPX, c.base);
+  $("pick").innerHTML = `<div class="picked">
+    <div class="strip"><span class="mono">${esc(p.sig)} · ${esc(p.num)}</span>
+      ${c.ok ? '<span class="tag good">conferida na Liga</span>' : '<span class="tag flag">conferir na Liga</span>'}</div>
+    <div class="body">
+      <div class="cardname">${esc(c.name)}<small>${esc(c.set.en)} · ${esc(O.label(OPX, c))}${c.rar ? " · " + esc(c.rar) : ""}${O.COLORS[c.cor] ? " · " + O.COLORS[c.cor] : ""}</small></div>
+      ${p.cands.length > 1 ? `<div class="field"><label for="pVer">Versão na Liga (${p.cands.length})</label>
+        <select id="pVer">${p.cands.map((x, i) => `<option value="${i}"${x === c ? " selected" : ""}>${esc(O.label(OPX, x))} — ${esc(x.set.sig)}${x.ok ? "" : " (não conferida)"}</option>`).join("")}</select>
+        <span class="hint" style="color:var(--muted)">O leitor não diferencia pré-release, parallel e promos com o mesmo código. Escolha a sua.</span></div>` : ""}
+      ${c.ok ? "" : `<div class="note"><b>Carta da base oficial.</b> Ela ainda não está nos seus exports da LigaOnePiece, então o nome pode estar um pouco diferente do da Liga.</div>`}
+      ${miss ? `<div class="note"><b>${miss} arte${miss > 1 ? "s" : ""} alternativa${miss > 1 ? "s" : ""} fora do catálogo.</b> Se a sua for uma delas, ajuste o Card # abaixo (o sufixo muda por edição, ex.: -PA ou -AA) ou mande o export completo dessa edição para a pasta liga-op/.</div>` : ""}
+      <div class="grid2">
+        <div class="field"><label for="pSig">Sigla da edição</label><input type="text" id="pSig" value="${esc(p.sig)}" autocapitalize="characters" autocorrect="off" spellcheck="false"></div>
+        <div class="field"><label for="pNum">Card #</label><input type="text" id="pNum" value="${esc(p.num)}" autocapitalize="characters" autocorrect="off" spellcheck="false"></div>
+      </div>
+      ${commonPickHTML(p)}
     </div></div>`;
 }
 $("pick").addEventListener("click", e => {
   const s = e.target.closest("[data-seg] button");
-  if (s) { pick[s.parentElement.dataset.seg] = s.dataset.v; s.parentElement.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b === s)); return; }
+  const x = e.target.closest("[data-multi] button");
+  if (x) {
+    const v = x.dataset.x, i = pick.exts.indexOf(v);
+    if (i >= 0) pick.exts.splice(i, 1); else pick.exts.push(v);
+    x.setAttribute("aria-pressed", i < 0);
+    return;
+  }
+  if (s) {
+    const k = s.parentElement.dataset.seg;
+    pick[k] = s.dataset.v; s.parentElement.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b === s));
+    if (k === "ver") refreshPickNumbers();
+    return;
+  }
   const st = e.target.closest("[data-step]");
   if (st) { pick.qty = Math.max(1, pick.qty + +st.dataset.step); $("pQty").textContent = pick.qty; return; }
   if (e.target.id === "pCancel") closePick();
   if (e.target.id === "pAdd") addPick();
 });
-$("pick").addEventListener("change", e => { if (e.target.id === "pLang") pick.lang = e.target.value; });
+$("pick").addEventListener("change", e => {
+  if (e.target.id === "pLang") pick.lang = e.target.value;
+  if (e.target.id === "pVer") {
+    const c = pick.cands[+e.target.value];
+    Object.assign(pick, { card: c }, O.rowOf(c));
+    if (c.num.endsWith("-JP")) pick.lang = "JP";
+    renderPickOP();
+  }
+});
 function closePick() { $("pick").hidden = true; $("pick").innerHTML = ""; pick = null; }
 function addPick() {
   const p = pick;
-  if (p.custom) {
-    p.sig = $("cSig").value.trim().toUpperCase(); p.num = C.ligaNum($("cNum").value.trim());
+  if (p.game === "op") {
+    p.sig = $("pSig").value.trim().toUpperCase(); p.num = $("pNum").value.trim().toUpperCase();
+    if (!p.sig || !p.num) { toast("Informe a sigla da edição e o Card #."); return; }
+    /* Sigla ou número trocados à mão: procura a carta certa no catálogo para manter nome e edição */
+    if (p.sig !== p.card.set.sig || p.num !== p.card.num) {
+      const hit = OPX.cards.find(c => c.set.up === p.sig && c.num === p.num);
+      if (hit) Object.assign(p, O.rowOf(hit));
+      else { const s = OPX.sigs.get(p.sig); p.edEn = s ? s.en : ""; p.custom = true; }
+    }
+  } else if (p.custom && GAME === "op") {
+    p.sig = $("cSig").value.trim().toUpperCase(); p.num = $("cNum").value.trim().toUpperCase();
+    p.en = C.fold($("cEn").value.trim()); p.pt = "";
+    const s = OPX && OPX.sigs.get(p.sig);
+    p.ed = ""; p.edEn = C.fold($("cEd").value.trim()) || (s ? s.en : "");
+    if (!p.sig || !p.num || !p.en) { toast("Preencha sigla, Card # e nome."); return; }
+  } else if (p.custom) {
+    p.sig = $("cSig").value.trim(); p.num = $("cNum").value.trim();
     p.pt = C.fold($("cPt").value.trim()); p.en = C.fold($("cEn").value.trim());
     p.ed = C.fold($("cEd").value.trim()); p.edEn = p.ed;
     if (!p.sig || !p.num || !(p.pt || p.en)) { toast("Preencha sigla, número e pelo menos um nome."); return; }
     if (!p.pt) p.pt = p.en; if (!p.en) p.en = p.pt;
   } else {
-    const sig = $("pSig").value.trim().toUpperCase() || p.defaultSig;
-    if (sig !== p.sig) {
+    const sig = $("pSig").value.trim() || p.defaultSig;
+    if (sig !== p.sig && !p.ver) {
       if (sig === p.defaultSig) delete sigOverrides[p.setId]; else sigOverrides[p.setId] = sig;
       save("ligaScanner.sigs.v1", sigOverrides);
-      const L = C.ligaInfo(IDX, p.card, sigOverrides); Object.assign(p, { sig: L.sig, ed: L.ed, edEn: L.edEn, pt: L.pt, en: L.en, rar: L.rar, cor: L.cor });
+      const L = C.ligaInfo(IDX, p.card, sigOverrides, p.ver); Object.assign(p, { sig: L.sig, num: L.num, ed: L.ed, edEn: L.edEn, pt: L.pt, en: L.en, rar: L.rar, cor: L.cor });
     }
+    if (!p.sig) { toast("Informe a sigla da coleção na Liga."); $("pSig").focus(); return; }
+    const enIn = $("pEn");
+    if (enIn && enIn.value.trim()) { p.en = p.pt = C.fold(enIn.value.trim()); }
   }
-  prefs = { qual: p.qual, lang: p.lang }; save("ligaScanner.prefs.v1", prefs);
-  const key = [p.sig, p.num, p.pt, p.ext, p.qual, p.lang].join("|");
+  p.ext = exAll().filter(x => p.exts.includes(x)).join(", ");
+  /* o idioma das japonesas não vira padrão para as próximas cartas */
+  const jpCard = p.game === "op" ? p.num.endsWith("-JP") : p.card && p.card.set.jp;
+  prefs = { qual: p.qual, lang: jpCard ? prefs.lang : p.lang }; save(G().prefsKey, prefs);
+  const key = [p.sig, p.num, p.pt || p.en, p.ext, p.qual, p.lang].join("|");
   const ex = batch.find(b => b.key === key);
   if (ex) ex.qty += p.qty;
-  else batch.unshift({ key, sig: p.sig, ed: p.ed, edEn: p.edEn, pt: p.pt, en: p.en, rar: p.rar, cor: p.cor, num: p.num, tot: p.tot, ext: p.ext, qual: p.qual, lang: p.lang, qty: p.qty, custom: p.custom });
+  else batch.unshift({ key, sig: p.sig, ed: p.ed, edEn: p.edEn, pt: p.pt, en: p.en, rar: p.rar, cor: p.cor, num: p.num, tot: p.tot, ext: p.ext, qual: p.qual, lang: p.lang, qty: p.qty, custom: !!p.custom || (p.game === "op" && !p.card.ok) });
   persist(); closePick(); $("q").value = ""; renderResults(null); setStatus(null);
-  toast(`${p.pt} adicionada (${p.qty}×).`);
+  toast(`${p.pt || p.en} adicionada (${p.qty}×).`);
   if (stream) $("cam").scrollIntoView({ block: "center" });
 }
 
 /* ---------- lote ---------- */
-function persist() { save("ligaScanner.batch.v1", batch); renderBatch(); }
+function persist() { save(G().batchKey, batch); renderBatch(); }
 function renderBatch() {
   const n = batch.reduce((a, b) => a + b.qty, 0);
   $("tCards").textContent = n;
   $("tRows").textContent = (n === 1 ? "carta" : "cartas") + ` · ${batch.length} ${batch.length === 1 ? "linha" : "linhas"}`;
   $("clearBtn").hidden = !batch.length;
   $("list").innerHTML = batch.length ? batch.map((b, i) => `<div class="item">
-      <span class="code">${esc(b.sig)} ${esc(b.num)}</span>
-      <div class="nm"><b>${esc(b.pt)}</b><div class="meta">
-        <span class="tag">${esc(b.ext || "Normal")}</span><span class="tag">${esc(b.qual)}</span><span class="tag">${esc(b.lang || "—")}</span>${b.custom ? '<span class="tag flag">conferir</span>' : ""}
+      <span class="code">${GAME === "op" ? esc(b.num) : esc(b.sig) + " " + esc(b.num)}</span>
+      <div class="nm"><b>${esc(b.pt || b.en)}</b><div class="meta">
+        ${GAME === "op" ? `<span class="tag">${esc(b.sig)}</span>` : ""}<span class="tag">${esc(b.ext || "Normal")}</span><span class="tag">${esc(b.qual)}</span><span class="tag">${esc(b.lang || "—")}</span>${b.custom ? '<span class="tag flag">conferir</span>' : ""}
       </div></div>
-      <div class="q"><button type="button" data-i="${i}" data-d="-1" aria-label="Diminuir ${esc(b.pt)}">−</button><span>${b.qty}</span><button type="button" data-i="${i}" data-d="1" aria-label="Aumentar ${esc(b.pt)}">+</button></div>
+      <div class="q"><button type="button" data-i="${i}" data-d="-1" aria-label="Diminuir ${esc(b.pt || b.en)}">−</button><span>${b.qty}</span><button type="button" data-i="${i}" data-d="1" aria-label="Aumentar ${esc(b.pt || b.en)}">+</button></div>
     </div>`).join("")
     : `<div class="empty"><b>Nenhuma carta no lote ainda.</b>
-       <ol><li><b>Abra a câmera</b> e encaixe a carta na moldura, com a faixa de baixo bem iluminada.</li>
+       <ol><li><b>Abra a câmera</b> e encaixe a carta na moldura, com ${GAME === "op" ? "o código do canto de baixo" : "a faixa de baixo"} bem iluminado${GAME === "op" ? "" : "a"}.</li>
        <li>Confira a carta encontrada e ajuste acabamento, qualidade, idioma e quantidade.</li>
-       <li><b>Baixe o CSV</b> e importe em Minha Coleção na LigaPokemon.</li></ol></div>`;
+       <li><b>Baixe o CSV</b> e importe em Minha Coleção na ${G().site}.</li></ol></div>`;
   $("raw").value = csv();
 }
 $("list").addEventListener("click", e => {
@@ -506,8 +717,8 @@ $("clearNo").onclick = () => { $("confirmClear").hidden = true; };
 $("clearYes").onclick = () => { batch = []; persist(); $("confirmClear").hidden = true; toast("Lote apagado."); };
 
 /* ---------- exportar ---------- */
-const csv = () => C.buildCSV(batch.slice().reverse());
-function fileName() { const d = new Date(), p = n => String(n).padStart(2, "0"); return `lote-liga-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}.csv`; }
+const csv = () => (GAME === "op" ? O : C).buildCSV(batch.slice().reverse());
+function fileName() { const d = new Date(), p = n => String(n).padStart(2, "0"); return `${G().file}-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}.csv`; }
 const csvFile = () => new File([csv()], fileName(), { type: "text/csv" });
 $("dlBtn").onclick = () => {
   if (!batch.length) { toast("Adicione cartas antes de baixar."); return; }
@@ -519,7 +730,7 @@ if (navigator.canShare && navigator.canShare({ files: [new File(["x"], "t.csv", 
   $("shareBtn").hidden = false;
   $("shareBtn").onclick = async () => {
     if (!batch.length) { toast("Adicione cartas antes de enviar."); return; }
-    try { await navigator.share({ files: [csvFile()], title: "Lote Liga" }); } catch (e) {}
+    try { await navigator.share({ files: [csvFile()], title: "Lote " + G().site }); } catch (e) {}
   };
 }
 $("copyBtn").onclick = async () => {
@@ -529,6 +740,7 @@ $("copyBtn").onclick = async () => {
 };
 
 let tt; function toast(m) { const t = $("toast"); t.textContent = m; t.hidden = false; clearTimeout(tt); tt = setTimeout(() => t.hidden = true, 2600); }
+applyGame();
 renderBatch();
 </script>
 </body>

@@ -18,7 +18,15 @@
     return m ? m[1] + m[2] + m[3] : n;
   }
   /* Número no formato da Liga: só dígitos viram 3 casas ("4" -> "004") */
-  const ligaNum = n => /^\d+$/.test(n) ? n.padStart(3, "0") : String(n).toUpperCase();
+  /* Número no formato da Liga, igual ao impresso: com 3 dígitos ("004") a partir de
+     Espada e Escudo (2020); antes disso, sem zeros à esquerda ("4", "32"). */
+  const PAD_FROM = "2020-02-01";
+  function ligaNum(n, rel) {
+    n = String(n ?? "").trim().toUpperCase();
+    if (!/^\d+$/.test(n)) return n;
+    n = n.replace(/^0+(?=\d)/, "");
+    return rel && rel >= PAD_FROM ? n.padStart(3, "0") : n;
+  }
 
   /* Corrige confusões comuns do OCR dentro da parte numérica */
   function fixDigits(tok) {
@@ -64,6 +72,11 @@
         }
       }
     }
+    /* Promo japonesa: "030/SV-P", "123/S-P", "045/M-P" */
+    if (!best || !best.sig) {
+      const m = T.match(/\b([0-9OILSBQDZ]{3})\s*\/\s*(SV|SM|S|M|XY|BW)\s*-?\s*P\b/);
+      if (m && sigs && sigs.has(m[2] + "-P")) best = { score: 9, sig: m[2] + "-P", lang: "JP", num: fixDigits(m[1]), tot: null };
+    }
     if (best) Object.assign(out, { sig: best.sig, lang: best.lang, num: best.num, tot: best.tot });
     out.langCode = out.lang ? LANGMAP[out.lang] : undefined;
     return out;
@@ -100,16 +113,17 @@
   const readLinesOf = text => String(text || "").split(/\n+/).map(norm).filter(l => l.replace(/ /g, "").length >= 3);
 
   function buildIndex(cat) {
-    const sets = cat.sets.map(s => ({ id: s[0], en: s[1], pt: s[2], sig: s[3], official: s[4], rel: s[5] || "", serie: s[6], ligaSig: s[7] || "" }));
+    const sets = cat.sets.map(s => ({ id: s[0], en: s[1], pt: s[2], sig: s[3], official: s[4], rel: s[5] || "", serie: s[6], ligaSig: s[7] || "", code: s[8] || "", jp: !!s[8] || s[6] === "Japão" }));
     const byId = new Map(sets.map(s => [s.id, s]));
     const cards = [];
     for (const s of sets) {
       for (const c of cat.cards[s.id] || []) {
-        cards.push({ key: s.id + "|" + c[0], set: s, lid: c[0], nn: normNum(c[0]), en: c[1], pt: c[2] || "", rar: c[3], cor: c[4], ne: norm(c[1]), np: norm(c[2] || "") });
+        cards.push({ key: s.id + "|" + c[0], set: s, lid: c[0], nn: normNum(c[0]), en: c[1] || "", pt: c[2] || "", rar: c[3], cor: c[4], ja: c[5] || "", ne: norm(c[1]), np: norm(c[2] || "") });
       }
     }
-    const sigs = new Set(sets.flatMap(s => [s.sig, s.ligaSig]).filter(Boolean));
-    return { sets, byId, cards, sigs, liga: cat.liga || {}, ligaSets: cat.ligaSets || {} };
+    for (const s of sets) s.ligaUp = s.ligaSig.toUpperCase();
+    const sigs = new Set(sets.flatMap(s => [s.sig, s.ligaUp]).filter(Boolean));
+    return { sets, byId, cards, sigs, liga: cat.liga || {}, ligaSets: cat.ligaSets || {}, variants: cat.variants || {} };
   }
 
   /* Ordena as cartas candidatas a partir do que o OCR leu */
@@ -119,7 +133,7 @@
     const tot = bottom.tot ? parseInt(String(bottom.tot).replace(/\D/g, ""), 10) : null;
     const totPre = bottom.tot ? (String(bottom.tot).match(/^[A-Z]+/) || [""])[0] : "";
     let pool = [], base = 0;
-    if (num && bottom.sig) { pool = idx.cards.filter(c => c.nn === num && (c.set.sig === bottom.sig || c.set.ligaSig === bottom.sig)); base = 3; }
+    if (num && bottom.sig) { pool = idx.cards.filter(c => c.nn === num && (c.set.sig === bottom.sig || c.set.ligaUp === bottom.sig)); base = 3; }
     if (!pool.length && num && tot) {
       pool = idx.cards.filter(c => c.nn === num && (totPre ? c.lid.toUpperCase().startsWith(totPre) : c.set.official === tot));
       base = 2;
@@ -145,24 +159,26 @@
   /* Busca manual: "063", "MEW 063", "4/102", "charizard", "charizard base" */
   function search(idx, q, limit) {
     const toks = norm(q).split(" ").filter(Boolean);
-    if (!toks.length) return [];
+    const jpWords = String(q).trim().split(/\s+/).filter(t => /[^\x00-\x7F]/.test(t) && !norm(t));
+    if (!toks.length && !jpWords.length) return [];
     let sig = null, num = null, tot = null; const words = [];
     const rawToks = String(q).toUpperCase().trim().split(/\s+/);
     for (const t of rawToks) {
       if (idx.sigs.has(t)) sig = t;
       else if (/^[A-Z]{0,4}\d+\/[A-Z]{0,4}\d+$/.test(t)) { const [a, b] = t.split("/"); num = normNum(a); tot = parseInt(b.replace(/\D/g, ""), 10); }
       else if (/^[A-Z]{0,4}\d+$/.test(t)) num = normNum(t);
-      else words.push(norm(t));
+      else if (norm(t)) words.push(norm(t));
     }
     const out = [];
     for (const c of idx.cards) {
-      if (sig && c.set.sig !== sig && c.set.ligaSig !== sig) continue;
+      if (sig && c.set.sig !== sig && c.set.ligaUp !== sig) continue;
       if (num && c.nn !== num) continue;
       if (tot && c.set.official !== tot) continue;
       if (words.length) {
         const hay = c.ne + " " + c.np + " " + norm(c.set.en) + " " + norm(c.set.pt);
         if (!words.every(w => hay.includes(w))) continue;
       }
+      if (jpWords.length && !jpWords.every(w => c.ja.includes(w) || c.set.en.includes(w))) continue;
       out.push(c);
       if (out.length >= (limit || 40)) break;
     }
@@ -170,18 +186,53 @@
   }
 
   /* Dados que vão para a linha do CSV da Liga */
-  function ligaInfo(idx, card, sigOverrides) {
-    const s = card.set;
-    const sig = (sigOverrides && sigOverrides[s.id]) || s.ligaSig || s.sig || s.id.toUpperCase();
-    const lc = idx.liga[s.id + "|" + card.nn];
-    const ls = idx.ligaSets[s.id];
+  /* Número no formato da Liga. A coleção diz se usa zeros à esquerda (pad) e sufixo
+     ("044JP", "077R"); números com prefixo (TG05, SWSH093, SV014) saem como impressos. */
+  function formatNum(lid, info, rel, jp) {
+    lid = String(lid ?? "").trim();
+    const m = lid.match(/^([A-Za-z]*)(\d+)([A-Za-z]*)$/);
+    const suf = (info && info.suf) || "";
+    if (!m) return lid;
+    if (m[1]) return lid + suf;
+    const pad = info && info.pad >= 0 ? info.pad : (jp || (rel && rel >= PAD_FROM)) ? 3 : 0;
+    return m[2].replace(/^0+(?=\d)/, "").padStart(pad, "0") + m[3] + suf;
+  }
+
+  /* Versões da mesma coleção na Liga (Master Ball, Poké Ball, Equipe Rocket, coreana...) */
+  function versions(idx, card) {
+    const base = idx.ligaSets[card.set.id], vs = (idx.variants[card.set.id] || []).filter(v => v[5] === "ver");
+    const parent = base ? base[0] : card.set.pt || card.set.en;
+    return vs.map(v => {
+      let label = v[1];
+      if (label.toLowerCase().startsWith(parent.toLowerCase())) label = label.slice(parent.length);
+      label = label.replace(/^[\s:\-–(]+|\)\s*$/g, "").trim() || v[0];
+      return { sig: v[0], label };
+    });
+  }
+
+  /* Dados que vão para a linha do CSV da Liga */
+  function ligaInfo(idx, card, sigOverrides, verSig) {
+    const s = card.set, ls = idx.ligaSets[s.id], vars = idx.variants[s.id] || [];
+    let info = ls ? { pt: ls[0], en: ls[1], suf: ls[2] || "", pad: ls[3] ?? -1 } : null;
+    const pre = (card.lid.match(/^[A-Za-z]+(?=\d)/) || [""])[0].toUpperCase();
+    const sub = pre && vars.find(v => v[5] === "sub" && v[6] === pre);
+    const ver = verSig && vars.find(v => v[5] === "ver" && v[0] === verSig);
+    const v = ver || sub;
+    if (v) info = { pt: v[1], en: v[2], suf: v[3] || "", pad: v[4] ?? -1 };
+    /* Japonesas sem sigla confirmada: segue o padrão mais comum da Liga ("SV1V" -> "sv1V") */
+    const jpGuess = s.jp && s.code ? s.code.replace(/^[A-Z]+(?=\d)/, m => m.toLowerCase()) : "";
+    const sig = (v && v[0]) || (sigOverrides && sigOverrides[s.id]) || s.ligaSig || jpGuess || s.sig || (s.jp ? "" : s.id.toUpperCase());
+    const lc = idx.liga[s.id + "|" + card.nn] || idx.liga[s.id + "|" + card.nn.replace(/JP$/, "")];
+    const num = lc && !ver ? lc[4] : formatNum(card.lid, info, s.rel, s.jp);
+    const name = s.jp ? (card.en || card.ja) : null;
     return {
-      sig, num: lc ? lc[4] : ligaNum(card.lid),
-      ed: ls ? ls[0] : fold(s.pt || s.en).trim(), edEn: ls ? ls[1] : fold(s.en).trim(),
-      pt: lc ? lc[0] : fold(card.pt || card.en), en: lc ? lc[1] : fold(card.en),
+      sig, num, ver: ver ? ver[0] : "",
+      ed: info ? info.pt : s.jp ? "" : fold(s.pt || s.en).trim(),
+      edEn: info ? info.en : s.jp ? "" : fold(s.en).trim(),
+      pt: lc ? lc[0] : name ?? fold(card.pt || card.en), en: lc ? lc[1] : name ?? fold(card.en),
       rar: lc ? lc[2] : card.rar, cor: lc ? lc[3] : card.cor,
       tot: s.official ? String(s.official) : "",
-      verified: !!lc
+      verified: !!lc || !!s.ligaSig || !!v, jpOnly: !!s.jp && !lc && !card.en
     };
   }
 
@@ -192,6 +243,6 @@
     return lines.join("\n") + "\n";
   }
 
-  const api = { fold, norm, normNum, ligaNum, fixDigits, parseBottom, nameScore, readLinesOf, buildIndex, resolve, search, ligaInfo, buildCSV, LANGMAP };
+  const api = { fold, norm, normNum, ligaNum, formatNum, versions, fixDigits, parseBottom, nameScore, readLinesOf, buildIndex, resolve, search, ligaInfo, buildCSV, LANGMAP };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.LigaCore = api;
 })(typeof window !== "undefined" ? window : globalThis);
