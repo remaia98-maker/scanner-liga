@@ -118,12 +118,13 @@
     const cards = [];
     for (const s of sets) {
       for (const c of cat.cards[s.id] || []) {
-        cards.push({ key: s.id + "|" + c[0], set: s, lid: c[0], nn: normNum(c[0]), en: c[1] || "", pt: c[2] || "", rar: c[3], cor: c[4], ja: c[5] || "", ne: norm(c[1]), np: norm(c[2] || "") });
+        cards.push({ key: s.id + "|" + c[0], set: s, lid: c[0], nn: normNum(c[0]), en: c[1] || "", pt: c[2] || "", rar: c[3], cor: c[4], ja: c[5] || "", pid: c[6] || 0, ne: norm(c[1]), np: norm(c[2] || "") });
       }
     }
     for (const s of sets) s.ligaUp = s.ligaSig.toUpperCase();
     const sigs = new Set(sets.flatMap(s => [s.sig, s.ligaUp]).filter(Boolean));
-    return { sets, byId, cards, sigs, liga: cat.liga || {}, ligaSets: cat.ligaSets || {}, variants: cat.variants || {} };
+    const byKey = new Map(cards.map(c => [c.key, c]));
+    return { sets, byId, cards, byKey, sigs, liga: cat.liga || {}, ligaSets: cat.ligaSets || {}, variants: cat.variants || {}, img: cat.img || {} };
   }
 
   /* Ordena as cartas candidatas a partir do que o OCR leu */
@@ -157,16 +158,26 @@
   }
 
   /* Busca manual: "063", "MEW 063", "4/102", "charizard", "charizard base" */
+  /* "charizard ex 151": se o número não achar nada, tenta de novo tratando-o como parte do nome da coleção */
+  /* Se nada aparecer, tenta de novo lendo números e siglas como palavras
+     ("charizard ex 151": "ex" é também a sigla de Expedition, e "151" é o nome da coleção). */
   function search(idx, q, limit) {
+    for (const [n, g] of [[false, false], [true, false], [false, true], [true, true]]) {
+      const out = searchOnce(idx, q, limit, n, g);
+      if (out.length) return out;
+    }
+    return [];
+  }
+  function searchOnce(idx, q, limit, numAsWord, sigAsWord) {
     const toks = norm(q).split(" ").filter(Boolean);
     const jpWords = String(q).trim().split(/\s+/).filter(t => /[^\x00-\x7F]/.test(t) && !norm(t));
     if (!toks.length && !jpWords.length) return [];
     let sig = null, num = null, tot = null; const words = [];
     const rawToks = String(q).toUpperCase().trim().split(/\s+/);
     for (const t of rawToks) {
-      if (idx.sigs.has(t)) sig = t;
+      if (idx.sigs.has(t) && !sigAsWord) sig = t;
       else if (/^[A-Z]{0,4}\d+\/[A-Z]{0,4}\d+$/.test(t)) { const [a, b] = t.split("/"); num = normNum(a); tot = parseInt(b.replace(/\D/g, ""), 10); }
-      else if (/^[A-Z]{0,4}\d+$/.test(t)) num = normNum(t);
+      else if (/^[A-Z]{0,4}\d+$/.test(t) && !(numAsWord && /^\d+$/.test(t))) num = normNum(t);
       else if (norm(t)) words.push(norm(t));
     }
     const out = [];
@@ -196,6 +207,14 @@
     if (m[1]) return lid + suf;
     const pad = info && info.pad >= 0 ? info.pad : (jp || (rel && rel >= PAD_FROM)) ? 3 : 0;
     return m[2].replace(/^0+(?=\d)/, "").padStart(pad, "0") + m[3] + suf;
+  }
+
+  /* Imagem oficial da carta: TCGdex (internacionais e japonesas) ou TCGplayer (japonesas que só ele tem) */
+  function imageUrl(idx, card, high) {
+    const base = idx.img[card.set.id];
+    if (base) return "https://assets.tcgdex.net/" + base + "/" + encodeURIComponent(card.lid) + (high ? "/high.webp" : "/low.webp");
+    if (card.pid) return "https://tcgplayer-cdn.tcgplayer.com/product/" + card.pid + (high ? "_400w.jpg" : "_200w.jpg");
+    return "";
   }
 
   /* Versões da mesma coleção na Liga (Master Ball, Poké Ball, Equipe Rocket, coreana...) */
@@ -243,6 +262,6 @@
     return lines.join("\n") + "\n";
   }
 
-  const api = { fold, norm, normNum, ligaNum, formatNum, versions, fixDigits, parseBottom, nameScore, readLinesOf, buildIndex, resolve, search, ligaInfo, buildCSV, LANGMAP };
+  const api = { fold, norm, normNum, ligaNum, formatNum, versions, imageUrl, fixDigits, parseBottom, nameScore, readLinesOf, buildIndex, resolve, search, ligaInfo, buildCSV, LANGMAP };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.LigaCore = api;
 })(typeof window !== "undefined" ? window : globalThis);

@@ -20,23 +20,20 @@ jobs:
       - name: Baixar nomes em inglês das japonesas (TCGplayer, via tcgcsv.com)
         run: python3 tools/fetch_tcgplayer_jp.py /tmp/tcgplayer-jp.json || echo "TCGCSV indisponivel, seguindo sem"
 
+      - name: Baixar a lista de imagens oficiais do TCGdex
+        run: curl -fsSL -A "ScannerLiga/1.0" https://assets.tcgdex.net/datas.json -o /tmp/tcgdex-imagens.json || echo "lista de imagens indisponivel"
+
       - name: Gerar catalog.json
-        run: python3 tools/build_catalog.py /tmp/tcgdex/data catalog.json liga /tmp/tcgplayer-jp.json
-
-      - name: Baixar a base oficial de One Piece (punk-records)
-        run: git clone --depth 1 https://github.com/buhbbl/punk-records /tmp/punk-records
-
-      - name: Gerar catalog-op.json (One Piece)
-        run: python3 tools/build_catalog_op.py /tmp/punk-records/english catalog-op.json liga-op
+        run: python3 tools/build_catalog.py /tmp/tcgdex/data catalog.json liga /tmp/tcgplayer-jp.json /tmp/tcgdex-imagens.json
 
       - name: Salvar se mudou
         run: |
-          if git diff --quiet catalog.json catalog-op.json; then
+          if git diff --quiet catalog.json; then
             echo "Nenhuma coleção nova."
           else
             git config user.name "github-actions[bot]"
             git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
-            git add catalog.json catalog-op.json
+            git add catalog.json
             git commit -m "Atualiza catálogo ($(date +%Y-%m-%d))"
             git push
           fi

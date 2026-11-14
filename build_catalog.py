@@ -32,6 +32,15 @@ def scalar(src, key):
 
 
 sets_out, cards_out = [], {}
+images = {}  # id da coleção -> caminho das imagens oficiais em assets.tcgdex.net ("en/sv/sv03.5")
+
+
+def serie_id(path, fallback):
+    try:
+        m = re.search(r"^\tid:\s*[\"']([^\"']+)", open(path, encoding="utf-8").read(), re.M)
+        return m.group(1) if m else fallback
+    except OSError:
+        return fallback
 intl = []   # (set_id, numero, dexIds, nome_en, categoria) para traduzir as cartas japonesas
 DEX_RE = re.compile(r"dexId\s*:\s*\[([\d,\s]+)\]")
 for serie in sorted(os.listdir(ROOT)):
@@ -88,6 +97,7 @@ for serie in sorted(os.listdir(ROOT)):
             return (int(d) if d else 9999, r[0])
         cards.sort(key=keyf)
         sets_out.append([sid, en, pt if pt != en else "", sig, official, rel, serie])
+        images[sid] = "en/%s/%s" % (serie_id(os.path.join(ROOT, serie + ".ts"), serie), sid)
         cards_out[sid] = cards
 
 
@@ -168,6 +178,7 @@ for serie in JP_SERIES:
             jp_cards.append((sid, cf[:-3], dex, ja, cat))
         if rows:
             jp_sets.append((sid, code, sname, int(cc.group(1)) if cc else 0, rel, rows))
+            images[sid] = "ja/%s/%s" % (serie_id(os.path.join(ASIA, serie + ".ts"), serie), code)
 
 # Dono ("ヒビキの" -> "Ethan's"): cruza cartas com o mesmo dexId nos dois idiomas
 owner_votes = defaultdict(Counter)
@@ -309,7 +320,7 @@ if TCGP and os.path.exists(TCGP):
             lid = numero.split("/")[0].strip()
             if any(r[0] == lid for r in rows):
                 continue
-            rows.append([lid, tclean(nome), "", JP_RARITY.get(rar, ""), "", ""])
+            rows.append([lid, tclean(nome), "", JP_RARITY.get(rar, ""), "", "", _pid])
         rows.sort(key=lambda r: (int(re.sub(r"\D", "", r[0]) or 9999), r[0]))
         sig = code.upper() if code and code.upper() not in existing_sigs else ""
         if sig:
@@ -579,7 +590,22 @@ for t in sets_out:
         report.append(f"{t[3]:8} removida de {t[0]} ({t[1]}): na Liga e de {claimed[t[3]]}")
         t[3] = ""
 
-json.dump({"v": 3, "sets": sets_out, "cards": cards_out, "ligaSets": liga_sets, "liga": liga, "variants": variants}, open(OUT, "w", encoding="utf-8"),
+# Só aponta imagens de coleções que o TCGdex tem (lista em assets.tcgdex.net/datas.json)
+DATAS = sys.argv[5] if len(sys.argv) > 5 else ""
+if DATAS and os.path.exists(DATAS):
+    try:
+        datas = json.load(open(DATAS, encoding="utf-8"))
+        kept = {}
+        for sid, base in images.items():
+            lang, ser, st = base.split("/", 2)
+            if datas.get(lang, {}).get(ser, {}).get(st):
+                kept[sid] = base
+        print(f"imagens: {len(kept)} de {len(images)} colecoes com imagem oficial")
+        images = kept
+    except (ValueError, AttributeError) as e:
+        print(f"imagens: datas.json ilegivel ({e}), mantendo todas")
+
+json.dump({"v": 4, "sets": sets_out, "cards": cards_out, "ligaSets": liga_sets, "liga": liga, "variants": variants, "img": images}, open(OUT, "w", encoding="utf-8"),
           ensure_ascii=False, separators=(",", ":"))
 print(len(sets_out), "colecoes", sum(len(v) for v in cards_out.values()), "cartas")
 print(len(liga), "cartas com dados da Liga")

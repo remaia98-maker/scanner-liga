@@ -4,326 +4,489 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Scanner Liga</title>
-<meta name="theme-color" content="#2943C4">
+<meta name="theme-color" content="#0F1013">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Scanner Liga">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
-<link rel="icon" href="icon-192.png">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
-/* Uma coluna estreita, como a página de um fichário: câmera e busca no topo, lote embaixo, exportação presa no rodapé. */
+/* Escuro, uma coluna. Início = busca; câmera contínua em tela cheia; lote e ficha da carta como camadas. */
 :root{
-  --bg:#EEF0F6; --surface:#FFFFFF; --sunk:#E3E6EF; --ink:#151829; --muted:#5B6079; --line:#D3D7E3;
-  --accent:#2943C4; --accent-ink:#FFFFFF; --accent-soft:#DDE3FF;
-  --warn:#9A5B00; --warn-soft:#FBEBCF; --ok:#1C7A45; --ok-soft:#DDF3E5;
-  --f-display:"Bricolage Grotesque","Avenir Next",system-ui,sans-serif;
-  --f-body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
-  --f-mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
-  --r:12px; color-scheme:light;
+  --bg:#0F1013; --surface:#17191D; --raised:#1E2025; --line:#2B2E35; --ink:#F4F5F7; --muted:#A7ABB7;
+  --accent:#FFB23F; --accent-ink:#1A1205; --accent-soft:#3A2A10;
+  --flag:#FF9D7A; --flag-bg:#3B1F17;
+  --f-body:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  --gut:max(16px,env(safe-area-inset-left,0px));
+  --gutr:max(16px,env(safe-area-inset-right,0px));
+  color-scheme:dark;
 }
-@media (prefers-color-scheme: dark){:root{
-  --bg:#0E1020; --surface:#171A2D; --sunk:#202440; --ink:#E7E9F5; --muted:#9CA1BF; --line:#2B3050;
-  --accent:#8FA2FF; --accent-ink:#0E1020; --accent-soft:#252C55;
-  --warn:#F2B552; --warn-soft:#3A2C12; --ok:#62D394; --ok-soft:#173526; color-scheme:dark}}
-/* One Piece: mesmo layout, acento vermelho para deixar claro em qual Liga o lote vai entrar */
-body[data-game="op"]{--accent:#B8322A;--accent-soft:#F8DEDA}
-@media (prefers-color-scheme: dark){body[data-game="op"]{--accent:#FF8F80;--accent-ink:#1A0E0C;--accent-soft:#45201C}}
-.games{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:12px;background:var(--sunk);border:1px solid var(--line)}
-.games button{min-height:42px;border:0;border-radius:9px;background:none;font-weight:600;cursor:pointer;color:var(--muted)}
-.games button[aria-pressed="true"]{background:var(--surface);color:var(--accent);box-shadow:0 1px 2px rgba(0,0,0,.12)}
-.band.code{bottom:1.5%;height:12%;left:50%}
 *{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body);padding-top:env(safe-area-inset-top,0px)}
-.wrap{max-width:560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px 130px;display:flex;flex-direction:column;gap:22px}
-h1,h2{font-family:var(--f-display);margin:0;text-wrap:balance}
-h1{font-size:28px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
-h2{font-size:17px;font-weight:600}
-.eyebrow{font:600 11px/1 var(--f-body);letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
-.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
-.muted{color:var(--muted)}
-button,select,input{font:inherit;color:inherit}
+html{-webkit-text-size-adjust:100%;background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 var(--f-body);min-height:100vh}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 [hidden]{display:none!important}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+h1,h2{margin:0;text-wrap:balance}
+h2{font-size:15px;font-weight:800}
 
-.top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
-.top p{margin:6px 0 0;color:var(--muted);font-size:13.5px;max-width:44ch}
-.tally{text-align:right}
-.tally b{display:block;font:800 26px/1 var(--f-display)}
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:14px}
+/* ---------- miniaturas: imagem oficial; sem ela, silhueta na cor do tipo ---------- */
+.thumb{position:relative;flex:none;display:block;width:46px;aspect-ratio:63/88;border-radius:5px;overflow:hidden;background:var(--t,#4A4F5E)}
+.thumb::before{content:"";position:absolute;left:12%;right:12%;top:20%;height:42%;border-radius:2px;background:rgba(255,255,255,.2)}
+.thumb::after{content:"";position:absolute;left:8%;right:30%;top:7%;height:5%;border-radius:2px;background:rgba(255,255,255,.7)}
+.thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;background:var(--raised)}
+.thumb.s{width:38px;border-radius:4px}
+.thumb.m{width:64px;border-radius:6px}
+.thumb.l{width:120px;border-radius:9px}
 
-.shoot{display:flex;align-items:center;justify-content:center;gap:10px;min-height:56px;border-radius:10px;background:var(--accent);color:var(--accent-ink);font:600 16px var(--f-body);cursor:pointer;border:0;width:100%}
-.shoot svg{width:22px;height:22px;flex:none}
-.shoot:disabled{opacity:.5}
-.ghost{min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-weight:600;cursor:pointer;padding:0 14px}
-.or{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px}
-.or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
-.field{display:flex;flex-direction:column;gap:6px}
-.field label,.lbl{font-size:12.5px;font-weight:600;color:var(--muted)}
-input[type=text],input[type=search],select{width:100%;min-height:44px;padding:0 12px;border-radius:9px;border:1px solid var(--line);background:var(--sunk);font-size:16px}
-input::placeholder{color:var(--muted)}
-
-/* Câmera com moldura no formato da carta (63 × 88 mm) */
-.cam{position:relative;width:100%;aspect-ratio:3/4;max-height:70vh;background:#000;border-radius:var(--r);overflow:hidden}
-.cam video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.frame{position:absolute;left:50%;top:50%;height:88%;aspect-ratio:63/88;transform:translate(-50%,-50%);border:2px solid rgba(255,255,255,.9);border-radius:4.5%/3.2%;box-shadow:0 0 0 999px rgba(5,8,20,.5);max-width:92%}
-.band{position:absolute;left:3%;right:3%;border:1.5px dashed rgba(255,214,90,.95);border-radius:4px}
-.band.name{top:2.5%;height:9.5%;right:20%}
-.band.num{bottom:1.5%;height:10%}
-.band span{position:absolute;left:4px;font:600 10.5px/1 var(--f-body);color:#FFD65A;letter-spacing:.04em;text-transform:uppercase;text-shadow:0 1px 2px #000}
-.band.name span{top:-15px}
-.band.num span{top:-15px}
-.camhint{position:absolute;left:0;right:0;bottom:8px;text-align:center;color:#fff;font-size:12.5px;text-shadow:0 1px 3px #000;padding:0 12px}
-.camrow{display:flex;gap:10px}
-.camrow .shoot{flex:1}
-
-.status{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:10px;background:var(--sunk);font-size:13.5px}
-.status.warn{background:var(--warn-soft)}
-.status .crops{display:flex;flex-direction:column;gap:6px}
-.status .crops canvas{max-width:100%;height:auto;border-radius:4px;background:#fff;display:block}
-.status details summary{cursor:pointer;color:var(--muted)}
-.status pre{margin:6px 0 0;white-space:pre-wrap;word-break:break-word;font:12px/1.4 var(--f-mono)}
-.spin{width:16px;height:16px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--accent);animation:sp .8s linear infinite;display:inline-block;vertical-align:-3px;margin-right:6px}
-@keyframes sp{to{transform:rotate(360deg)}}
-@media (prefers-reduced-motion:reduce){.spin{animation:none}}
-
-.results{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:10px;overflow:hidden}
-.res{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:10px 12px;background:var(--surface);border:0;border-top:1px solid var(--line);text-align:left;cursor:pointer;width:100%}
-.res:first-child{border-top:0}
-.res:hover{background:var(--sunk)}
-.res .nm{min-width:0}
-.res .nm b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.res .nm span{display:block;font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.code{font:700 12px/1 var(--f-mono);padding:6px 7px;border-radius:6px;background:var(--accent-soft);color:var(--accent);white-space:nowrap;font-variant-numeric:tabular-nums}
-.tag{font:500 11.5px/1 var(--f-body);padding:5px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
-.tag.flag{border-color:transparent;background:var(--warn-soft);color:var(--warn)}
-.tag.good{border-color:transparent;background:var(--ok-soft);color:var(--ok)}
-.linkbtn{border:0;background:none;color:var(--accent);font-weight:600;cursor:pointer;padding:4px 0;font-size:13.5px;text-align:left}
-
-/* Carta escolhida: faixa superior imita a linha impressa no rodapé da carta */
-.picked{border:1px solid var(--accent);border-radius:var(--r);background:var(--surface);overflow:hidden}
-.strip{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 16px;background:var(--accent-soft);flex-wrap:wrap}
-.strip .mono{font-size:15px;font-weight:700;color:var(--accent)}
-.picked .body{padding:16px;display:flex;flex-direction:column;gap:14px}
-.cardname{font:600 21px/1.2 var(--f-display)}
-.cardname small{display:block;font:400 13.5px var(--f-body);color:var(--muted);margin-top:3px}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.seg{display:flex;flex-wrap:wrap;gap:6px}
-.seg button{min-height:38px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--sunk);cursor:pointer;font-size:13.5px}
-.seg button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
-.stepper{display:flex;align-items:center;border:1px solid var(--line);border-radius:9px;background:var(--sunk);min-height:44px}
-.stepper button{width:44px;height:44px;border:0;background:none;font-size:20px;cursor:pointer}
-.stepper output{flex:1;text-align:center;font:700 16px var(--f-mono)}
-.row-actions{display:flex;gap:10px}
-.btn{min-height:46px;padding:0 16px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-weight:600;cursor:pointer}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);flex:1}
-.note{font-size:13px;padding:10px 12px;border-radius:9px;background:var(--warn-soft)}
-.note b{color:var(--warn)}
-.hint{font-size:12.5px;color:var(--warn)}
-details.more{margin-top:8px}
-details.more summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:13.5px;margin-bottom:8px}
-
-.batch-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
-.list{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
-.item{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px 14px;border-top:1px solid var(--line)}
-.item:first-child{border-top:0}
-.item .nm{min-width:0}
-.item .nm b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.item .meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
-.item .q{display:flex;align-items:center;gap:4px}
-.item .q button{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--sunk);cursor:pointer;font-size:16px;line-height:1}
-.item .q span{min-width:24px;text-align:center;font:700 14px var(--f-mono)}
-.empty{padding:22px 18px;display:flex;flex-direction:column;gap:12px}
+/* ---------- início ---------- */
+.view{max-width:560px;margin:0 auto;padding-left:var(--gut);padding-right:var(--gutr);padding-top:calc(env(safe-area-inset-top,0px) + 18px);padding-bottom:130px;display:flex;flex-direction:column;gap:20px}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.search{display:flex;align-items:center;gap:10px;height:54px;padding:0 8px 0 14px;border-radius:16px;background:var(--raised);border:1px solid var(--line)}
+.search:focus-within{border-color:var(--accent)}
+.search input{flex:1;min-width:0;border:0;outline:0;background:transparent;font-weight:600;font-size:16px}
+.search input::placeholder{color:var(--muted);font-weight:500}
+.search input::-webkit-search-cancel-button{display:none}
+.search .clear{width:40px;height:40px;border:0;background:none;color:var(--muted);border-radius:50%;display:flex;align-items:center;justify-content:center}
+.chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none}
+.chip{flex:none;height:36px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:transparent;font-weight:600;font-size:13.5px}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg);font-weight:700}
+.sec{display:flex;flex-direction:column;gap:10px}
+.sec-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.link{border:0;background:none;color:var(--accent);font-weight:700;font-size:13.5px;padding:8px 0;text-align:left}
+.strip{display:flex;gap:12px;overflow-x:auto;scrollbar-width:none}
+.strip .it{flex:none;width:64px;display:flex;flex-direction:column;gap:5px;border:0;background:none;padding:0;text-align:left}
+.strip .it b{font-size:12px;font-weight:700;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.strip .it span{font:500 11px var(--f-mono);color:var(--muted);margin-top:-3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.list{display:flex;flex-direction:column;border-radius:16px;background:var(--surface);overflow:hidden}
+.row{display:flex;gap:12px;align-items:center;padding:10px 12px;border:0;border-top:1px solid #24272D;background:none;text-align:left;width:100%}
+.row:first-child{border-top:0}
+button.row:active{background:var(--raised)}
+.row .nm{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.row .nm b{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .nm span{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .q{font:600 14px var(--f-mono)}
+.tags{display:flex;gap:5px;flex-wrap:wrap}
+.tag{font-size:11px;font-weight:700;padding:2px 6px;border-radius:5px;background:#24272D;color:#D3D6DE;white-space:nowrap}
+.tag.x{background:var(--accent-soft);color:var(--accent)}
+.tag.f{background:var(--flag-bg);color:var(--flag)}
+.empty{padding:20px 18px;display:flex;flex-direction:column;gap:10px;border-radius:16px;background:var(--surface)}
 .empty ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;color:var(--muted)}
-.empty ol b{color:var(--ink);font-weight:600}
-.confirm{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 12px;border-radius:10px;background:var(--warn-soft);font-size:13.5px}
-.confirm span{flex:1}
-details.raw{font-size:13px}
-details.raw summary{cursor:pointer;color:var(--muted)}
-details.raw textarea{width:100%;height:160px;margin-top:8px;font:12px/1.45 var(--f-mono);padding:10px;border-radius:9px;border:1px solid var(--line);background:var(--sunk);color:var(--ink);resize:vertical}
 .foot{font-size:12.5px;color:var(--muted);margin:0}
+.notice{padding:12px 14px;border-radius:12px;background:var(--flag-bg);color:#FFD9CC;font-size:13.5px}
 
-.bar{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--surface);border-top:1px solid var(--line);padding-top:12px;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-.bar .in{max-width:560px;margin:0 auto;display:flex;gap:10px}
-.bar .btn.primary{flex:1}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(86px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:10px;font-size:13.5px;z-index:6;max-width:calc(100% - 32px)}
+/* ---------- barras inferiores ---------- */
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:var(--gut);padding-right:var(--gutr)}
+.dock .in{max-width:560px;margin:0 auto;height:84px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:start;padding-top:12px}
+.dock .side{justify-self:center;display:flex;flex-direction:column;align-items:center;gap:4px;border:0;background:none;font-weight:600;font-size:12px;min-width:70px;min-height:48px;position:relative}
+.dock .side svg{width:24px;height:24px}
+.dock .badge{position:absolute;top:-6px;right:6px;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font:600 11.5px var(--f-mono);display:flex;align-items:center;justify-content:center}
+.fab{justify-self:center;margin-top:-46px;width:80px;height:80px;border-radius:50%;border:6px solid var(--bg);background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center}
+.fab:disabled{opacity:.5}
+.fab svg{width:32px;height:32px}
+.bar2 .in{display:flex;gap:10px;height:auto;padding:12px 0}
+.btn{min-height:52px;padding:0 16px;border-radius:14px;border:1px solid var(--line);background:transparent;font-weight:700;font-size:15px;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:800}
+.btn.round{width:52px;padding:0;border-radius:50%;background:var(--raised);border-color:var(--raised);flex:none}
+.btn svg{width:22px;height:22px}
+
+/* ---------- lote ---------- */
+.top{display:flex;align-items:center;gap:8px}
+.back{width:44px;height:44px;margin-left:-10px;border:0;background:none;display:flex;align-items:center;justify-content:center}
+.stats{display:flex;gap:16px;flex-wrap:wrap;font-size:13.5px;color:var(--muted)}
+.stats b{font:600 15px var(--f-mono);color:var(--ink)}
+.lrow{display:flex;gap:6px;align-items:center;padding:8px 4px 8px 8px;border-radius:14px;background:var(--surface)}
+.lrow .body{flex:1;min-width:0;display:flex;gap:12px;align-items:center;border:0;background:none;padding:0;text-align:left}
+.lrow .nm{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.lrow .nm b{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lrow .nm .c{font:500 12px var(--f-mono);color:var(--muted)}
+.step{display:flex;align-items:center}
+.step button{width:34px;height:44px;border:0;background:none;color:var(--muted);font-size:19px}
+.step span{font:600 15px var(--f-mono);min-width:18px;text-align:center}
+.tools{display:flex;gap:8px;flex-wrap:wrap}
+.tools .btn{min-height:40px;font-size:13.5px;padding:0 12px;border-radius:10px}
+details.raw summary{cursor:pointer;color:var(--muted);font-size:13px}
+details.raw textarea{width:100%;height:160px;margin-top:8px;font:12px/1.45 var(--f-mono);padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--surface);resize:vertical}
+.confirm{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 12px;border-radius:12px;background:var(--flag-bg);font-size:13.5px}
+.confirm span{flex:1}
+
+/* ---------- câmera ---------- */
+.cam{position:fixed;inset:0;z-index:20;background:#000;overflow:hidden}
+.cam video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.cam .shade{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 76px);height:min(42vh,330px);aspect-ratio:63/88;transform:translateX(-50%);border-radius:11px;border:3px solid rgba(255,255,255,.85);box-shadow:0 0 0 9999px rgba(5,6,8,.5);transition:border-color .2s}
+.cam .shade.hit{border-color:var(--accent)}
+.cam .shade i{position:absolute;left:3%;right:3%;bottom:1.5%;height:10%;border:1.5px dashed rgba(255,214,90,.8);border-radius:4px}
+.cam .ctop{position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);left:var(--gut);right:var(--gutr);display:flex;justify-content:space-between;align-items:center;gap:10px}
+.cbtn{flex:none;width:44px;height:44px;border-radius:50%;border:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;color:#fff}
+.cbtn svg{width:20px;height:20px}
+.cbtn[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.pill{min-height:36px;padding:0 14px;border-radius:999px;background:rgba(0,0,0,.6);display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:700;color:#fff;min-width:0}
+.pill .dot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.pill .dot.off{background:var(--muted)}
+.chipst{position:absolute;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 76px + min(42vh,330px) + 12px);max-width:calc(100% - 32px);min-height:36px;padding:6px 14px;border-radius:999px;background:rgba(0,0,0,.7);color:#fff;font-weight:700;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:0}
+.chipst.ok{background:var(--accent);color:var(--accent-ink)}
+.chipst.warn{background:var(--flag-bg);color:#FFD9CC}
+.panel{position:absolute;left:0;right:0;bottom:0;padding:14px 0 calc(env(safe-area-inset-bottom,0px) + 16px);background:#141518;border-radius:22px 22px 0 0;display:flex;flex-direction:column;gap:14px}
+.panel .last{display:flex;align-items:center;gap:10px;padding:0 var(--gutr) 0 var(--gut)}
+.panel .last .nm{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.panel .last b{font-size:16px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.panel .last .nm>span{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.panel .sm{flex:none;height:40px;padding:0 12px;border-radius:10px;border:1px solid #2E3138;background:transparent;font-weight:700;font-size:13px}
+.panel .sm.t{border:0;color:var(--accent);padding:0 6px}
+.panel .film{display:flex;gap:8px;padding:0 var(--gutr) 0 var(--gut);overflow-x:auto;scrollbar-width:none;min-height:53px;align-items:center}
+.panel .film .hint{font-size:13px;color:var(--muted)}
+.panel .ctrls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:center;padding:2px 24px 0}
+.ctl{display:flex;flex-direction:column;align-items:center;gap:5px;border:0;background:none;font-weight:600;font-size:12px;color:#fff}
+.ctl span{width:50px;height:50px;border-radius:50%;background:#24272D;display:flex;align-items:center;justify-content:center}
+.ctl.done span{background:var(--ink);color:var(--bg)}
+.ctl svg{width:22px;height:22px}
+.shutter{justify-self:center;width:76px;height:76px;border-radius:50%;border:4px solid #fff;background:transparent;padding:5px}
+.shutter span{width:100%;height:100%;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center}
+.shutter svg{width:24px;height:24px}
+
+/* ---------- ficha da carta ---------- */
+.sheet{position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;justify-content:flex-end}
+.sheet .scrim{position:absolute;inset:0;background:rgba(5,6,10,.6);border:0}
+.sheet .box{position:relative;max-height:92vh;overflow-y:auto;background:var(--surface);border-radius:22px 22px 0 0;padding:10px var(--gutr) calc(env(safe-area-inset-bottom,0px) + 20px) var(--gut);display:flex;flex-direction:column;gap:16px;max-width:600px;width:100%;margin:0 auto}
+.grab{align-self:center;width:40px;height:5px;border-radius:3px;background:#3A3F4F;flex:none}
+.head{display:flex;gap:14px;align-items:flex-start}
+.head .nm{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.head .code{font:600 13px var(--f-mono);color:var(--accent)}
+.head h2{font-size:22px;font-weight:800;line-height:1.15}
+.head small{font-size:13px;color:var(--muted)}
+.field{display:flex;flex-direction:column;gap:7px}
+.lbl,.field>label{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.field input,.field select{min-height:46px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:var(--raised);font-size:16px;font-weight:600}
+.field input:disabled{opacity:.6}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{min-height:38px;padding:0 12px;border-radius:999px;border:1px solid #343949;background:transparent;font-size:13.5px;font-weight:600}
+.seg button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:800}
+.seg.ext button{border-radius:8px}
+.seg.ext button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+details.more summary{cursor:pointer;color:var(--accent);font-weight:700;font-size:13.5px;margin-bottom:8px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.stepper{display:flex;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:10px;background:var(--raised);min-height:46px}
+.stepper button{width:40px;height:46px;border:0;background:none;font-size:20px}
+.stepper output{font:700 16px var(--f-mono)}
+.hint{font-size:12.5px;color:var(--flag);font-weight:600}
+.actions{display:flex;flex-direction:column;gap:10px}
+.actions .row2{display:flex;gap:10px}
+.actions .row2 .btn{flex:1}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 104px);z-index:40;background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:10px;font-size:13.5px;font-weight:600;max-width:calc(100% - 32px)}
+@media (prefers-reduced-motion:reduce){.cam .shade{transition:none}}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header class="top">
-    <div>
-      <div class="eyebrow" id="eyebrow">LigaPokemon · importação de coleção</div>
-      <h1>Scanner Liga</h1>
-      <p id="intro">Encaixe a carta na moldura, leia o número e o nome, e baixe o lote em CSV para importar na Liga.</p>
+
+<!-- ============ INÍCIO: BUSCA ============ -->
+<main class="view" id="home">
+  <header style="display:flex;flex-direction:column;gap:14px">
+    <span class="eyebrow">Scanner Liga</span>
+    <label class="search">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="color:var(--muted);flex:none"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <span class="sr">Buscar carta</span>
+      <input type="search" id="q" placeholder="Nome, número ou sigla (ex.: MEW 063)" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search" disabled>
+      <button type="button" class="clear" id="qClear" aria-label="Limpar busca" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </label>
+    <div class="chips" role="group" aria-label="Filtrar resultados" id="filters">
+      <button type="button" class="chip" data-f="" aria-pressed="true">Todas</button>
+      <button type="button" class="chip" data-f="jp" aria-pressed="false">Japonesas</button>
+      <button type="button" class="chip" data-f="promo" aria-pressed="false">Promos</button>
+      <button type="button" class="chip" data-f="old" aria-pressed="false">Antigas</button>
     </div>
-    <div class="tally"><b class="mono" id="tCards">0</b><span class="muted" id="tRows">cartas no lote</span></div>
   </header>
 
-  <div class="games" role="group" aria-label="Jogo">
-    <button type="button" data-game="pk" aria-pressed="true">Pokémon</button>
-    <button type="button" data-game="op" aria-pressed="false">One Piece</button>
-  </div>
+  <div id="status" class="notice" role="status" hidden></div>
 
-  <section class="panel" aria-labelledby="h-add">
-    <h2 id="h-add" class="eyebrow" style="font-family:var(--f-body)">Adicionar carta</h2>
+  <section class="sec" id="resultsSec" hidden>
+    <h2 id="resCount">Resultados</h2>
+    <div class="list" id="results"></div>
+    <button type="button" class="link" id="manualBtn">Não achou? Adicionar manualmente</button>
+  </section>
 
-    <button class="shoot" id="openCam" type="button" disabled>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
-      <span id="openCamTxt">Carregando catálogo…</span>
-    </button>
-
-    <div id="camBox" hidden>
-      <div class="cam" id="cam">
-        <video id="video" playsinline muted autoplay></video>
-        <div class="frame" id="frame">
-          <div class="band name" data-only="pk"><span>Nome</span></div>
-          <div class="band num" data-only="pk"><span>Sigla e número</span></div>
-          <div class="band code" data-only="op"><span>Código</span></div>
-        </div>
-        <div class="camhint" id="camhint">Carta inteira dentro da moldura, sem reflexo na faixa de baixo</div>
-      </div>
-      <div class="camrow" style="margin-top:10px">
-        <button class="ghost" id="closeCam" type="button">Fechar</button>
-        <button class="shoot" id="snap" type="button">Ler carta</button>
-      </div>
-    </div>
-
-    <button class="linkbtn" id="galleryBtn" type="button">Ou escolher uma foto da galeria</button>
+  <div id="homeIdle" style="display:flex;flex-direction:column;gap:22px">
+    <section class="sec" id="recentSec" hidden>
+      <div class="sec-h"><h2>Adicionadas agora</h2><span class="muted" style="font-size:12.5px" id="recentWhen"></span></div>
+      <div class="strip" id="recent"></div>
+    </section>
+    <section class="sec">
+      <div class="sec-h"><h2>Lote para a Liga <span class="mono" style="color:var(--accent);font-weight:600" id="hCount">0</span></h2><button type="button" class="link" id="seeAll">Ver tudo</button></div>
+      <div id="preview"></div>
+    </section>
+    <button type="button" class="link" id="galleryBtn">Ler a foto de uma carta da galeria</button>
     <input type="file" id="gallery" accept="image/*" hidden>
+    <p class="foot" id="catInfo">Carregando o catálogo…</p>
+  </div>
+</main>
 
-    <div id="status" class="status" hidden></div>
-
-    <div class="or">ou busque</div>
-    <div class="field">
-      <label for="q" id="qLabel">Número, sigla, nome ou coleção</label>
-      <input type="search" id="q" placeholder="4/102, MEW 063, Charizard base" autocomplete="off" disabled>
+<!-- ============ LOTE ============ -->
+<main class="view" id="lote" hidden>
+  <header style="display:flex;flex-direction:column;gap:10px">
+    <div class="top">
+      <button type="button" class="back" id="loteBack" aria-label="Voltar para a busca"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <h1 style="font-size:24px;font-weight:800;flex:1">Lote para a Liga</h1>
     </div>
-    <div class="results" id="results" hidden></div>
-    <button class="linkbtn" id="manualBtn" type="button">Não achou? Adicionar manualmente</button>
-  </section>
+    <div class="stats" id="stats"></div>
+  </header>
+  <div id="loteList" style="display:flex;flex-direction:column;gap:8px"></div>
+  <div class="tools" id="tools">
+    <button type="button" class="btn" id="copyBtn">Copiar CSV</button>
+    <button type="button" class="btn" id="shareBtn" hidden>Enviar CSV</button>
+    <button type="button" class="btn" id="clearBtn">Limpar lote</button>
+  </div>
+  <div class="confirm" id="confirmClear" hidden>
+    <span>Apagar todas as cartas do lote?</span>
+    <button type="button" class="btn" id="clearYes" style="min-height:40px">Apagar</button>
+    <button type="button" class="btn" id="clearNo" style="min-height:40px">Cancelar</button>
+  </div>
+  <details class="raw"><summary>Ver o CSV gerado</summary><textarea id="raw" readonly aria-label="Conteúdo do CSV"></textarea></details>
+</main>
 
-  <section id="pick" hidden></section>
+<nav class="dock" id="dockHome" aria-label="Ações">
+  <div class="in">
+    <button type="button" class="side" id="goLote">
+      <span class="badge" id="dockCount" hidden>0</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="11" height="15" rx="2"/><path d="M9 21h8a2 2 0 0 0 2-2V8"/></svg>
+      Lote
+    </button>
+    <button type="button" class="fab" id="openCam" aria-label="Abrir câmera" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+    </button>
+    <button type="button" class="side" id="dlBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="M7 10l5 5 5-5"/><path d="M5 20h14"/></svg>
+      Exportar CSV
+    </button>
+  </div>
+</nav>
 
-  <section aria-labelledby="h-batch" style="display:flex;flex-direction:column;gap:10px">
-    <div class="batch-head">
-      <h2 id="h-batch">Lote para importar</h2>
-      <button class="linkbtn" id="clearBtn" type="button" hidden>Limpar lote</button>
+<nav class="dock bar2" id="dockLote" aria-label="Ações do lote" hidden>
+  <div class="in">
+    <button type="button" class="btn round" id="openCam2" aria-label="Abrir câmera"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
+    <button type="button" class="btn primary" id="dlBtn2" style="flex:1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="M7 10l5 5 5-5"/><path d="M5 20h14"/></svg>Baixar CSV da Liga</button>
+  </div>
+</nav>
+
+<!-- ============ CÂMERA CONTÍNUA ============ -->
+<section class="cam" id="cam" aria-label="Câmera" hidden>
+  <video id="video" playsinline muted autoplay></video>
+  <div class="shade" id="frame" aria-hidden="true"><i></i></div>
+  <div class="ctop">
+    <button type="button" class="cbtn" id="camClose" aria-label="Fechar câmera"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <span class="pill" role="status"><span class="dot off" id="camDot"></span><span id="camPillTxt">Abrindo câmera…</span></span>
+    <button type="button" class="cbtn" id="torch" aria-label="Lanterna" aria-pressed="false" style="visibility:hidden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3L5 14h6l-1 7 8-11h-6z"/></svg></button>
+  </div>
+  <button type="button" class="chipst" id="camChip" hidden></button>
+  <div class="panel">
+    <div class="last" id="camLast" hidden></div>
+    <div class="film" id="camFilm"></div>
+    <div class="ctrls">
+      <button type="button" class="ctl" id="camSearch" style="justify-self:start"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></span>Buscar</button>
+      <button type="button" class="shutter" id="camPause" aria-label="Pausar leitura"><span id="camPauseIcon"></span></button>
+      <button type="button" class="ctl done" id="camDone" style="justify-self:end"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>Concluir</button>
     </div>
-    <div class="confirm" id="confirmClear" hidden>
-      <span>Apagar todas as cartas do lote?</span>
-      <button class="ghost" id="clearYes" type="button">Apagar</button>
-      <button class="ghost" id="clearNo" type="button">Cancelar</button>
-    </div>
-    <div class="list" id="list"></div>
-    <details class="raw" id="rawBox">
-      <summary>Ver o CSV gerado</summary>
-      <textarea id="raw" readonly aria-label="Conteúdo do CSV"></textarea>
-    </details>
-    <p class="foot" id="catInfo">Catálogo: TCGdex, com os nomes da Liga nas coleções do seu export. O lote fica salvo neste aparelho.</p>
-  </section>
+  </div>
+</section>
+
+<!-- ============ FICHA DA CARTA ============ -->
+<div class="sheet" id="sheet" hidden>
+  <button type="button" class="scrim" id="sheetScrim" aria-label="Fechar"></button>
+  <div class="box" id="sheetBox" role="dialog" aria-modal="true" aria-labelledby="sheetTitle"></div>
 </div>
 
-<div class="bar"><div class="in">
-  <button class="btn" id="copyBtn" type="button">Copiar</button>
-  <button class="btn" id="shareBtn" type="button" hidden>Enviar</button>
-  <button class="btn primary" id="dlBtn" type="button">Baixar CSV</button>
-</div></div>
-<div class="toast" id="toast" hidden></div>
+<div class="toast" id="toast" role="status" hidden></div>
 
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
 <script src="core.js"></script>
-<script src="core-op.js"></script>
 <script>
 "use strict";
 const C = window.LigaCore;
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const QUALS = ["M", "NM", "SP", "MP", "HP", "D"];
-const LANGS = [["BR","Português"],["EN","Inglês"],["JP","Japonês"],["ES","Espanhol"],["FR","Francês"],["DE","Alemão"],["IT","Italiano"],["KO","Coreano"],["","Não informar"]];
-/* Extras aceitos pela Liga, na ordem em que aparecem no CSV; os primeiros ficam sempre visíveis */
+const LANGS = [["BR","Português"],["EN","Inglês"],["JP","Japonês"],["ES","Espanhol"],["FR","Francês"],["DE","Alemão"],["IT","Italiano"],["KO","Coreano"],["TW","Chinês"],["","Não informar"]];
+const LANG_SHORT = { BR: "PT", EN: "EN", JP: "JP", ES: "ES", FR: "FR", DE: "DE", IT: "IT", KO: "KO", TW: "ZH", "": "—" };
+const langName = v => (LANGS.find(l => l[0] === v) || [, "—"])[1];
+/* Extras aceitos pela Liga, na ordem em que aparecem no CSV */
 const EXTRAS_MAIN = ["Foil", "Reverse Foil", "Promo", "Pre Release", "Edition One", "Master Ball", "Pokeball Foil"];
 const EXTRAS_MORE = ["Shadowless", "Textless", "Shattered Holo", "Staff", "Oversize", "Misprint", "Assinada", "Alterada"];
 const EXTRAS = EXTRAS_MAIN.concat(EXTRAS_MORE);
-/* One Piece: o único extra visto nos exports da LigaOnePiece é Foil (e Promo) */
-const EXTRAS_OP_MAIN = ["Foil", "Promo"], EXTRAS_OP_MORE = ["Assinada", "Alterada", "Misprint"];
-const exMain = () => GAME === "op" ? EXTRAS_OP_MAIN : EXTRAS_MAIN;
-const exMore = () => GAME === "op" ? EXTRAS_OP_MORE : EXTRAS_MORE;
-const exAll = () => exMain().concat(exMore());
+/* Cor da miniatura quando não há imagem oficial: tipo da carta (códigos de cor da Liga) */
+const TYPE_FILL = { G: "#2F6B4A", R: "#8A3B2E", W: "#2E5A8A", L: "#6E5C18", P: "#5E3C7E", F: "#7A5233", D: "#2F3340", M: "#4F5B66", Y: "#8A3E6A", O: "#6B5A2A", C: "#4A4F5E", E: "#3E4656" };
 
 /* ---------- armazenamento local ---------- */
 function load(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
 function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
-const O = window.LigaOP;
-/* Cada jogo tem o próprio lote e as próprias preferências, porque vão para sites diferentes da Liga */
-const GAMES = {
-  pk: { batchKey: "ligaScanner.batch.v1", prefsKey: "ligaScanner.prefs.v1", defLang: "BR", site: "LigaPokemon", file: "lote-liga",
-        catalog: "catalog.json", intro: "Encaixe a carta na moldura, leia o número e o nome, e baixe o lote em CSV para importar na Liga.",
-        qLabel: "Número, sigla, nome ou coleção", qPh: "4/102, MEW 063, Charizard base", hint: "Carta inteira dentro da moldura, sem reflexo na faixa de baixo" },
-  op: { batchKey: "ligaScanner.batch.op.v1", prefsKey: "ligaScanner.prefs.op.v1", defLang: "EN", site: "LigaOnePiece", file: "lote-ligaonepiece",
-        catalog: "catalog-op.json", intro: "Encaixe a carta na moldura, leia o código do canto inferior direito e baixe o lote em CSV para importar na Liga.",
-        qLabel: "Código, nome ou edição", qPh: "OP07-038, P-045, OP-07-PR luffy", hint: "Carta inteira dentro da moldura, com o código bem iluminado" }
-};
-let GAME = load("ligaScanner.game", "pk") === "op" ? "op" : "pk";
-const G = () => GAMES[GAME];
-let batch = load(G().batchKey, []);
-let prefs = load(G().prefsKey, { qual: "NM", lang: G().defLang });
+let batch = load("ligaScanner.batch.v1", []);
+let prefs = load("ligaScanner.prefs.v1", { qual: "NM", lang: "BR" });
 let sigOverrides = load("ligaScanner.sigs.v1", {});
-let IDX = null, OPX = null;
-const loading = {};
+let IDX = null;
 
-/* ---------- catálogo (o de One Piece só é baixado quando o jogo é escolhido) ---------- */
-function loadCatalog(game) {
-  if (loading[game]) return loading[game];
-  loading[game] = fetch(GAMES[game].catalog).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(cat => {
-    if (game === "pk") IDX = C.buildIndex(cat);
-    else { OPX = O.buildIndex(cat); OPX.codes = new Set(OPX.byBase.keys()); }
-    if (game === GAME) refreshReady();
-  }).catch(() => {
-    loading[game] = null;
-    if (game === GAME) {
-      $("openCamTxt").textContent = "Catálogo não carregou";
-      setStatus(`O arquivo ${esc(GAMES[game].catalog)} não foi encontrado. Ele precisa estar na mesma pasta do index.html.`, "warn");
-    }
-  });
-  return loading[game];
+/* ---------- miniaturas ---------- */
+function thumb(url, cor, size) {
+  const fill = TYPE_FILL[cor] || TYPE_FILL.C;
+  return `<span class="thumb ${size || ""}" style="--t:${fill}" aria-hidden="true">${url ? `<img src="${esc(url)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">` : ""}</span>`;
 }
-const ready = () => GAME === "op" ? !!OPX : !!IDX;
-function refreshReady() {
-  const ok = ready();
-  $("openCam").disabled = !ok; $("q").disabled = !ok;
-  $("openCamTxt").textContent = ok ? "Abrir câmera" : "Carregando catálogo…";
-  if (!ok) return;
-  if (GAME === "op") {
-    const conf = OPX.cards.filter(c => c.ok).length;
-    $("catInfo").textContent = `Catálogo: ${OPX.cards.length.toLocaleString("pt-BR")} cartas em ${OPX.sets.length} edições da LigaOnePiece (${conf.toLocaleString("pt-BR")} conferidas nos seus exports, o resto da base oficial da Bandai). O lote fica salvo neste aparelho.`;
-  } else {
-    $("catInfo").textContent = `Catálogo: ${IDX.cards.length.toLocaleString("pt-BR")} cartas de ${IDX.sets.length} coleções (TCGdex), com os nomes da Liga nas coleções do seu export. O lote fica salvo neste aparelho.`;
+const cardImg = (card, high) => card && IDX ? C.imageUrl(IDX, card, high) : "";
+
+/* ---------- catálogo ---------- */
+fetch("catalog.json").then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(cat => {
+  IDX = C.buildIndex(cat);
+  $("catInfo").textContent = `Catálogo: ${IDX.cards.length.toLocaleString("pt-BR")} cartas de ${IDX.sets.length} coleções. Imagens: TCGdex e TCGplayer. O lote fica salvo neste aparelho.`;
+  $("openCam").disabled = false; $("q").disabled = false;
+  /* cartas do lote ganham miniatura quando o catálogo carrega */
+  let changed = false;
+  for (const b of batch) {
+    if (!b.ck) { const k = findKey(b); if (k) { b.ck = k; changed = true; } }
+    if (!b.img && b.ck && IDX.byKey.get(b.ck)) { b.img = cardImg(IDX.byKey.get(b.ck)); changed = true; }
+    if (b.verified === undefined) { b.verified = !b.custom; changed = true; }
   }
+  if (changed) persist(); else renderAll();
+}).catch(() => {
+  $("catInfo").textContent = "O catálogo não carregou. O arquivo catalog.json precisa estar na mesma pasta do index.html.";
+  showStatus("O catálogo não carregou. Confira a internet e recarregue a página.");
+});
+/* liga uma linha antiga do lote (sem referência) à carta do catálogo pela sigla e número */
+function findKey(b) {
+  if (b.custom) return "";
+  const hits = C.search(IDX, `${b.sig} ${b.num}`, 5);
+  const hit = hits.find(c => C.ligaInfo(IDX, c, sigOverrides).sig === b.sig);
+  return hit ? hit.key : "";
+}
+function showStatus(t) { const s = $("status"); s.textContent = t || ""; s.hidden = !t; }
+
+/* ---------- busca ---------- */
+let filter = "", results = [];
+const isPromo = s => /promo/i.test(s.en) || /(P|PR|-P|Jp|JP)$/.test(s.ligaSig || s.sig || "");
+function applyFilter(list) {
+  if (filter === "jp") return list.filter(c => c.set.jp);
+  if (filter === "promo") return list.filter(c => isPromo(c.set));
+  if (filter === "old") return list.filter(c => c.set.rel && c.set.rel < "2011");
+  return list;
+}
+function runSearch() {
+  const v = $("q").value.trim();
+  $("qClear").hidden = !v;
+  if (!v || !IDX) { $("resultsSec").hidden = true; $("homeIdle").hidden = false; return; }
+  results = applyFilter(C.search(IDX, v, 300)).slice(0, 40);
+  $("homeIdle").hidden = true; $("resultsSec").hidden = false;
+  $("resCount").textContent = results.length ? `${results.length}${results.length === 40 ? "+" : ""} resultados` : "Nada encontrado";
+  $("results").innerHTML = results.map((c, i) => {
+    const L = C.ligaInfo(IDX, c, sigOverrides);
+    const sub = `${c.set.pt || c.set.en}${c.set.rel ? " · " + c.set.rel.slice(0, 4) : ""}`;
+    return `<button type="button" class="row" data-r="${i}">${thumb(cardImg(c), L.cor, "")}
+      <span class="nm"><b>${esc(L.pt)}</b><span><span class="mono" style="color:var(--accent)">${esc(L.sig)} ${esc(L.num)}</span> · ${esc(sub)}</span></span></button>`;
+  }).join("");
+}
+let qTimer;
+$("q").addEventListener("input", () => { clearTimeout(qTimer); qTimer = setTimeout(runSearch, 160); });
+$("qClear").onclick = () => { $("q").value = ""; runSearch(); $("q").focus(); };
+$("filters").addEventListener("click", e => {
+  const b = e.target.closest("[data-f]"); if (!b) return;
+  filter = b.dataset.f;
+  $("filters").querySelectorAll("[data-f]").forEach(x => x.setAttribute("aria-pressed", x === b));
+  runSearch();
+});
+$("results").addEventListener("click", e => { const b = e.target.closest("[data-r]"); if (b) openSheet({ mode: "add", card: results[+b.dataset.r] }); });
+$("manualBtn").onclick = () => openSheet({ mode: "add", card: null });
+
+/* ---------- telas ---------- */
+function show(view) {
+  $("home").hidden = view !== "home"; $("dockHome").hidden = view !== "home";
+  $("lote").hidden = view !== "lote"; $("dockLote").hidden = view !== "lote";
+  window.scrollTo(0, 0);
+}
+$("goLote").onclick = $("seeAll").onclick = () => show("lote");
+$("loteBack").onclick = () => show("home");
+
+/* ---------- lote ---------- */
+function persist() { save("ligaScanner.batch.v1", batch); renderAll(); }
+const total = () => batch.reduce((a, b) => a + b.qty, 0);
+const needsCheck = b => b.custom || b.verified === false;
+function tagsHTML(b) {
+  return `<span class="tags"><span class="tag">${esc(b.qual)}</span><span class="tag">${esc(LANG_SHORT[b.lang] ?? b.lang)}</span>${b.ext ? `<span class="tag x">${esc(b.ext)}</span>` : ""}${needsCheck(b) ? '<span class="tag f">conferir</span>' : ""}</span>`;
+}
+function renderAll() {
+  const n = total(), flags = batch.filter(needsCheck).length;
+  $("hCount").textContent = n;
+  $("dockCount").textContent = n; $("dockCount").hidden = !n;
+  const rec = batch.slice(0, 12);
+  $("recentSec").hidden = !rec.length;
+  $("recent").innerHTML = rec.map((b, i) => `<button type="button" class="it" data-e="${i}" aria-label="Editar ${esc(b.pt)}">${thumb(b.img, b.cor, "m")}<b>${esc(b.pt)}</b><span>${esc(b.sig)} ${esc(b.num)}</span></button>`).join("");
+  $("recentWhen").textContent = rec.length && rec[0].at ? new Date(rec[0].at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "";
+  $("preview").innerHTML = batch.length
+    ? `<div class="list">${batch.slice(0, 3).map((b, i) => `<button type="button" class="row" data-e="${i}">${thumb(b.img, b.cor, "s")}<span class="nm"><b>${esc(b.pt)}</b><span><span class="mono">${esc(b.sig)} ${esc(b.num)}</span> · ${esc(b.qual)} · ${esc(LANG_SHORT[b.lang] ?? b.lang)}${b.ext ? " · " + esc(b.ext) : ""}</span></span><span class="q">×${b.qty}</span></button>`).join("")}</div>`
+    : `<div class="empty"><b>Nenhuma carta no lote ainda.</b><ol><li>Toque no botão da câmera e encaixe a carta na moldura. A leitura é contínua.</li><li>Se a carta não for reconhecida, busque pelo nome ou número.</li><li>Exporte o CSV e importe em Minha Coleção na LigaPokemon.</li></ol></div>`;
+  $("stats").innerHTML = `<span><b>${n}</b> ${n === 1 ? "carta" : "cartas"}</span><span><b>${batch.length}</b> ${batch.length === 1 ? "linha" : "linhas"}</span>${flags ? `<span><b style="color:var(--flag)">${flags}</b> para conferir</span>` : ""}`;
+  $("loteList").innerHTML = batch.length ? batch.map((b, i) => `<div class="lrow">
+      <button type="button" class="body" data-e="${i}" aria-label="Editar ${esc(b.pt)}">${thumb(b.img, b.cor, "")}
+        <span class="nm"><b>${esc(b.pt)}</b><span class="c">${esc(b.sig)} ${esc(b.num)}</span>${tagsHTML(b)}</span></button>
+      <span class="step"><button type="button" data-i="${i}" data-d="-1" aria-label="Diminuir ${esc(b.pt)}">−</button><span>${b.qty}</span><button type="button" data-i="${i}" data-d="1" aria-label="Aumentar ${esc(b.pt)}">+</button></span>
+    </div>`).join("") : `<div class="empty"><b>O lote está vazio.</b><span class="muted">Abra a câmera para começar.</span></div>`;
+  $("tools").hidden = !batch.length;
+  $("raw").value = csv();
+}
+document.addEventListener("click", e => {
+  if (e.target.closest(".sheet") || e.target.closest(".cam")) return;
+  const ed = e.target.closest("[data-e]");
+  if (ed) { openSheet({ mode: "edit", index: +ed.dataset.e }); return; }
+  const st = e.target.closest("#loteList [data-d]");
+  if (st) {
+    const it = batch[+st.dataset.i]; it.qty += +st.dataset.d;
+    if (it.qty <= 0) batch.splice(+st.dataset.i, 1);
+    persist();
+  }
+});
+$("clearBtn").onclick = () => { $("confirmClear").hidden = false; };
+$("clearNo").onclick = () => { $("confirmClear").hidden = true; };
+$("clearYes").onclick = () => { batch = []; persist(); $("confirmClear").hidden = true; toast("Lote apagado."); };
+
+/* adiciona uma linha ao lote (junta com uma igual e traz para o topo) */
+function addEntry(p) {
+  const key = [p.sig, p.num, p.pt, p.ext, p.qual, p.lang].join("|");
+  const ex = batch.find(b => b.key === key);
+  if (ex) { ex.qty += p.qty; ex.at = Date.now(); batch.splice(batch.indexOf(ex), 1); batch.unshift(ex); persist(); return ex; }
+  const e = { key, sig: p.sig, ed: p.ed, edEn: p.edEn, pt: p.pt, en: p.en, rar: p.rar, cor: p.cor, num: p.num, tot: p.tot, ext: p.ext,
+    exts: (p.exts || []).slice(), ver: p.ver || "", qual: p.qual, lang: p.lang, qty: p.qty, custom: !!p.custom, verified: p.custom ? false : !!p.verified,
+    ck: p.card ? p.card.key : "", img: p.card ? cardImg(p.card) : "", at: Date.now() };
+  batch.unshift(e); persist(); return e;
+}
+function entryFromCard(card, o) {
+  o = o || {};
+  const L = C.ligaInfo(IDX, card, sigOverrides, o.ver || "");
+  const exts = (o.exts || []).slice();
+  return { card, sig: L.sig, num: L.num, ed: L.ed, edEn: L.edEn, pt: L.pt, en: L.en, rar: L.rar, cor: L.cor, tot: L.tot, verified: L.verified,
+    jpOnly: L.jpOnly, ver: o.ver || "", exts, ext: EXTRAS.filter(x => exts.includes(x)).join(", "), qual: o.qual || prefs.qual,
+    lang: o.lang || (card.set.jp ? "JP" : prefs.lang), qty: o.qty || 1 };
 }
 
-/* ---------- troca de jogo ---------- */
-function applyGame() {
-  const g = G();
-  document.body.dataset.game = GAME;
-  document.querySelectorAll(".games button").forEach(b => b.setAttribute("aria-pressed", b.dataset.game === GAME));
-  document.querySelectorAll("[data-only]").forEach(el => { el.hidden = el.dataset.only !== GAME; });
-  $("eyebrow").textContent = `${g.site} · importação de coleção`;
-  $("intro").textContent = g.intro; $("qLabel").textContent = g.qLabel; $("q").placeholder = g.qPh; $("camhint").textContent = g.hint;
-  refreshReady();
-  loadCatalog(GAME);
+/* ---------- exportar ---------- */
+const csv = () => C.buildCSV(batch.slice().reverse());
+function fileName() { const d = new Date(), p = n => String(n).padStart(2, "0"); return `lote-liga-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}.csv`; }
+function download() {
+  if (!batch.length) { toast("Adicione cartas antes de exportar."); return; }
+  const url = URL.createObjectURL(new Blob([csv()], { type: "text/csv;charset=utf-8" }));
+  const a = document.createElement("a"); a.href = url; a.download = fileName(); document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
-document.querySelector(".games").addEventListener("click", e => {
-  const b = e.target.closest("[data-game]"); if (!b || b.dataset.game === GAME || reading) return;
-  GAME = b.dataset.game; save("ligaScanner.game", GAME);
-  batch = load(G().batchKey, []); prefs = load(G().prefsKey, { qual: "NM", lang: G().defLang });
-  closePick(); renderResults(null); setStatus(null); $("q").value = ""; $("confirmClear").hidden = true;
-  applyGame(); renderBatch();
-});
+$("dlBtn").onclick = $("dlBtn2").onclick = download;
+if (navigator.canShare && navigator.canShare({ files: [new File(["x"], "t.csv", { type: "text/csv" })] })) {
+  $("shareBtn").hidden = false;
+  $("shareBtn").onclick = async () => { try { await navigator.share({ files: [new File([csv()], fileName(), { type: "text/csv" })], title: "Lote Liga" }); } catch (e) {} };
+}
+$("copyBtn").onclick = async () => {
+  try { await navigator.clipboard.writeText(csv()); toast("CSV copiado."); }
+  catch (e) { const t = $("raw"); t.closest("details").open = true; t.focus(); t.select(); toast("Selecionei o texto: copie manualmente."); }
+};
 
 /* ---------- OCR (Tesseract) ---------- */
 let worker = null, workerReady = null;
@@ -331,64 +494,16 @@ function getWorker() {
   if (workerReady) return workerReady;
   workerReady = (async () => {
     if (!window.Tesseract) throw new Error("tesseract");
-    worker = await Tesseract.createWorker("eng", 1, {
-      logger: m => { if (m.status && m.progress != null && /load|initial/i.test(m.status)) setBusy(`Preparando o leitor (só na primeira vez)… ${Math.round(m.progress * 100)}%`); }
+    const w = await Tesseract.createWorker("eng", 1, {
+      logger: m => { if (camOpen && m.status && m.progress != null && /load|initial/i.test(m.status)) pill(`Preparando o leitor ${Math.round(m.progress * 100)}%`, false); }
     });
-    await worker.setParameters({ preserve_interword_spaces: "1" });
-    return worker;
+    await w.setParameters({ preserve_interword_spaces: "1", tessedit_pageseg_mode: "6" });
+    worker = w;
+    return w;
   })();
   workerReady.catch(() => { workerReady = null; });
   return workerReady;
 }
-
-/* ---------- câmera ---------- */
-let stream = null;
-$("openCam").onclick = async () => {
-  $("camBox").hidden = false; $("openCam").hidden = true;
-  getWorker().catch(() => {});
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1440 } }, audio: false });
-    $("video").srcObject = stream;
-    await $("video").play().catch(() => {});
-  } catch (e) {
-    closeCam();
-    setStatus("Não consegui abrir a câmera. Confira a permissão do navegador para este site, ou use uma foto da galeria.", "warn");
-  }
-};
-function closeCam() {
-  if (stream) stream.getTracks().forEach(t => t.stop());
-  stream = null; $("camBox").hidden = true; $("openCam").hidden = false;
-}
-$("closeCam").onclick = closeCam;
-
-/* recorta a área da moldura do vídeo, levando em conta o object-fit: cover */
-function grabCard() {
-  const v = $("video"), box = $("cam").getBoundingClientRect(), fr = $("frame").getBoundingClientRect();
-  const vw = v.videoWidth, vh = v.videoHeight;
-  if (!vw) return null;
-  const s = Math.max(box.width / vw, box.height / vh);
-  const ox = (box.width - vw * s) / 2, oy = (box.height - vh * s) / 2;
-  const sx = (fr.left - box.left - ox) / s, sy = (fr.top - box.top - oy) / s, sw = fr.width / s, sh = fr.height / s;
-  const W = 900, H = Math.round(W * 88 / 63);
-  const c = document.createElement("canvas"); c.width = W; c.height = H;
-  c.getContext("2d").drawImage(v, sx, sy, sw, sh, 0, 0, W, H);
-  return c;
-}
-$("snap").onclick = () => { const c = grabCard(); if (c) readCard(c); };
-
-$("galleryBtn").onclick = () => $("gallery").click();
-$("gallery").onchange = async e => {
-  const f = e.target.files && e.target.files[0]; e.target.value = ""; if (!f) return;
-  try {
-    const bmp = await createImageBitmap(f);
-    /* sem moldura: assume que a foto mostra a carta inteira, recortada perto das bordas */
-    const W = 900, H = Math.round(W * 88 / 63);
-    const c = document.createElement("canvas"); c.width = W; c.height = H;
-    c.getContext("2d").drawImage(bmp, 0, 0, W, H);
-    readCard(c);
-  } catch (err) { setStatus("Não consegui abrir essa imagem.", "warn"); }
-};
-
 /* recorta uma faixa da carta, amplia e realça o contraste */
 function band(card, x0, y0, x1, y1, scale, invert) {
   const W = card.width, H = card.height;
@@ -407,341 +522,329 @@ function band(card, x0, y0, x1, y1, scale, invert) {
   g.putImageData(img, 0, 0);
   return c;
 }
+async function ocrNumber(w, card, invert) {
+  await w.setParameters({ tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/ " });
+  return (await w.recognize(band(card, 0, 0.875, 1, 0.99, 2, invert))).data.text;
+}
+async function ocrName(w, card) {
+  await w.setParameters({ tessedit_char_whitelist: "" });
+  return (await w.recognize(band(card, 0.03, 0.02, 0.82, 0.125, 2, false))).data.text;
+}
+async function readNumber(w, card) {
+  let p = C.parseBottom(await ocrNumber(w, card, false), IDX.sigs);
+  if (!p.num) p = C.parseBottom(await ocrNumber(w, card, true), IDX.sigs);
+  return p;
+}
 
-let reading = false;
-async function readCard(card) {
-  if (reading || !ready()) return;
-  reading = true; $("snap").disabled = true;
-  closePick(); renderResults(null);
-  setBusy("Lendo a carta…");
+/* ---------- câmera contínua ---------- */
+let stream = null, camOpen = false, paused = false, session = [], lastKey = null, pendKey = null, scanning = false;
+const PAUSE_ICON = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
+const PLAY_ICON = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
+function pill(text, live) { $("camPillTxt").textContent = text; $("camDot").classList.toggle("off", !live); }
+function camChip(text, kind, onTap) {
+  const c = $("camChip");
+  if (!text) { c.hidden = true; c.onclick = null; return; }
+  c.textContent = text; c.className = "chipst" + (kind ? " " + kind : ""); c.hidden = false; c.onclick = onTap || null;
+}
+function setPaused(v) {
+  paused = v;
+  $("camPauseIcon").innerHTML = v ? PLAY_ICON : PAUSE_ICON;
+  $("camPause").setAttribute("aria-label", v ? "Retomar leitura" : "Pausar leitura");
+  if (camOpen && worker) pill(v ? "Pausado" : `Contínuo · ${session.length} nesta sessão`, !v);
+}
+async function openCamera() {
+  if (!IDX) return;
+  $("cam").hidden = false; camOpen = true; session = []; lastKey = pendKey = null;
+  renderCamPanel(); camChip(""); setPaused(false); pill("Abrindo câmera…", false);
+  document.body.style.overflow = "hidden";
+  getWorker().then(() => { if (camOpen) setPaused(paused); })
+    .catch(() => { if (camOpen) { pill("Leitor indisponível", false); camChip("O leitor de texto não carregou. Toque para buscar.", "warn", () => goSearch()); } });
   try {
-    if (GAME === "op") { await readCardOP(card); return; }
-    const w = await getWorker();
-    setBusy("Lendo a carta…");
-    const numBand = band(card, 0, 0.875, 1, 0.99, 2, false);
-    const nameBand = band(card, 0.03, 0.02, 0.82, 0.125, 2, false);
-    await w.setParameters({ tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/ ", tessedit_pageseg_mode: "6" });
-    let bottomText = (await w.recognize(numBand)).data.text;
-    let parsed = C.parseBottom(bottomText, IDX.sigs);
-    if (!parsed.num) {
-      const inv = band(card, 0, 0.875, 1, 0.99, 2, true);
-      const t2 = (await w.recognize(inv)).data.text;
-      const p2 = C.parseBottom(t2, IDX.sigs);
-      if (p2.num) { parsed = p2; bottomText = t2; }
-    }
-    await w.setParameters({ tessedit_char_whitelist: "", tessedit_pageseg_mode: "6" });
-    const topText = (await w.recognize(nameBand)).data.text;
-    const r = C.resolve(IDX, parsed, topText);
-    showReading(numBand, nameBand, parsed, bottomText, topText, r);
-    if (r.auto) openPick(r.auto, parsed);
-    else if (r.ranked.length) renderResults(r.ranked.map(x => x.card), parsed);
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1440 } }, audio: false });
+    if (!camOpen) { stream.getTracks().forEach(t => t.stop()); return; }
+    $("video").srcObject = stream;
+    await $("video").play().catch(() => {});
+    const track = stream.getVideoTracks()[0];
+    const caps = track && track.getCapabilities ? track.getCapabilities() : {};
+    $("torch").style.visibility = caps.torch ? "visible" : "hidden";
+    if (!worker) pill("Preparando o leitor…", false);
+    scanLoop();
   } catch (e) {
-    setStatus(window.Tesseract ? "O leitor falhou nesta foto. Tente de novo ou use a busca." : "O leitor de texto não carregou. Confira a internet e recarregue a página.", "warn");
-  } finally {
-    reading = false; $("snap").disabled = false;
+    closeCamera();
+    showStatus("Não consegui abrir a câmera. Confira a permissão do navegador para este site.");
   }
 }
-
-function showReading(numBand, nameBand, p, bt, tt, r) {
-  const code = p.num ? `${p.sig || ""} ${p.lang || ""} ${p.num}${p.tot ? "/" + p.tot : ""}`.replace(/\s+/g, " ").trim() : "número não lido";
-  const msg = r.auto ? `Encontrada: <b>${esc(r.auto.en)}</b> · ${esc(r.auto.set.en)}`
-    : r.ranked.length ? `Escolha a carta certa na lista abaixo.`
-    : `Não achei a carta. Tente outra foto com mais luz, ou use a busca.`;
-  setStatus(`<div><b class="mono">${esc(code)}</b> · ${msg}</div>
-    <details><summary>Ver o que o leitor viu</summary>
-      <div class="crops" id="crops"></div>
-      <pre>Rodapé: ${esc(bt.trim() || "(vazio)")}\nTopo: ${esc(tt.trim() || "(vazio)")}</pre>
-    </details>`, r.auto || r.ranked.length ? "" : "warn");
-  const crops = $("crops"); crops.append(nameBand, numBand);
+function closeCamera() {
+  camOpen = false;
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  stream = null; $("video").srcObject = null; $("cam").hidden = true; document.body.style.overflow = "";
+  $("torch").setAttribute("aria-pressed", "false");
 }
-/* One Piece: o código impresso (OP07-038, ST14-001, P-045) já diz a coleção e o número.
-   Tenta o canto inferior direito, depois o mesmo recorte invertido, depois a faixa de baixo inteira. */
-async function readCardOP(card) {
-  const w = await getWorker();
-  setBusy("Lendo o código…");
-  await w.setParameters({ tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789- ", tessedit_pageseg_mode: "6" });
-  const tries = [[0.45, 0.85, 1, 0.995, 3, false], [0.45, 0.85, 1, 0.995, 3, true], [0, 0.78, 1, 1, 2, false]];
-  let hit = null, text = "", crop = null;
-  const seen = [];
-  for (const [x0, y0, x1, y1, sc, inv] of tries) {
-    crop = band(card, x0, y0, x1, y1, sc, inv);
-    text = (await w.recognize(crop)).data.text;
-    seen.push(text.trim());
-    const h = O.parseCode(text, OPX.codes);
-    if (h && (!hit || h.score > hit.score)) hit = h;
-    if (hit && hit.known) break;
+$("openCam").onclick = $("openCam2").onclick = openCamera;
+$("camClose").onclick = () => { closeCamera(); show("home"); };
+$("camDone").onclick = () => { closeCamera(); show(batch.length ? "lote" : "home"); };
+function goSearch(prefill) {
+  closeCamera(); closeSheet(); show("home");
+  if (typeof prefill === "string") { $("q").value = prefill; runSearch(); }
+  $("q").focus();
+}
+$("camSearch").onclick = () => goSearch();
+$("camPause").onclick = () => setPaused(!paused);
+$("torch").onclick = async () => {
+  const t = stream && stream.getVideoTracks()[0]; if (!t) return;
+  const on = $("torch").getAttribute("aria-pressed") !== "true";
+  try { await t.applyConstraints({ advanced: [{ torch: on }] }); $("torch").setAttribute("aria-pressed", String(on)); } catch (e) {}
+};
+
+/* recorta a área da moldura do vídeo, levando em conta o object-fit: cover */
+function grabCard() {
+  const v = $("video"), box = $("cam").getBoundingClientRect(), fr = $("frame").getBoundingClientRect();
+  const vw = v.videoWidth, vh = v.videoHeight;
+  if (!vw) return null;
+  const s = Math.max(box.width / vw, box.height / vh);
+  const ox = (box.width - vw * s) / 2, oy = (box.height - vh * s) / 2;
+  const sx = (fr.left - box.left - ox) / s, sy = (fr.top - box.top - oy) / s, sw = fr.width / s, sh = fr.height / s;
+  const W = 900, H = Math.round(W * 88 / 63);
+  const c = document.createElement("canvas"); c.width = W; c.height = H;
+  c.getContext("2d").drawImage(v, sx, sy, sw, sh, 0, 0, W, H);
+  return c;
+}
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+async function scanLoop() {
+  if (scanning) return;
+  scanning = true;
+  try {
+    while (camOpen) {
+      if (!paused && !sheetOpen() && worker && $("video").videoWidth) {
+        try { await scanOnce(); } catch (e) { /* um quadro ruim não interrompe a leitura */ }
+      }
+      await sleep(200);
+    }
+  } finally { scanning = false; }
+}
+/* Lê um quadro. A carta só entra quando o mesmo resultado aparece em duas leituras seguidas,
+   e não entra de novo enquanto continuar na moldura: tire e coloque de volta para contar outra. */
+async function scanOnce() {
+  const card = grabCard(); if (!card) return;
+  const parsed = await readNumber(worker, card);
+  if (!camOpen || paused || sheetOpen()) return;
+  if (!parsed.num) { lastKey = pendKey = null; return; }
+  const topText = parsed.sig ? "" : await ocrName(worker, card);
+  if (!camOpen || paused || sheetOpen()) return;
+  const r = C.resolve(IDX, parsed, topText);
+  const code = `${parsed.sig || ""} ${parsed.num}${parsed.tot ? "/" + parsed.tot : ""}`.trim();
+  if (r.auto) {
+    const key = r.auto.key;
+    if (key === lastKey) return;
+    if (key !== pendKey) { pendKey = key; return; }
+    lastKey = key; pendKey = null;
+    const e = addEntry(entryFromCard(r.auto, { lang: parsed.langCode }));
+    session.unshift(e);
+    $("frame").classList.add("hit"); setTimeout(() => $("frame").classList.remove("hit"), 600);
+    if (navigator.vibrate) navigator.vibrate(25);
+    camChip(`✓ ${e.pt} · ${e.sig} ${e.num}`, "ok");
+    renderCamPanel(); setPaused(false);
+  } else if (r.ranked.length) {
+    const key = "amb:" + code;
+    if (key === lastKey) return;
+    lastKey = key; pendKey = null;
+    const list = r.ranked.map(x => x.card);
+    camChip(`${code}: ${list.length} cartas possíveis. Toque para escolher`, "", () => openSheet({ mode: "choose", list, read: parsed }));
+    openSheet({ mode: "choose", list, read: parsed });
+  } else {
+    const key = "nf:" + code;
+    if (key === lastKey) return;
+    lastKey = key; pendKey = null;
+    camChip(`Não achei ${code}. Toque para buscar`, "warn", () => goSearch(parsed.num));
   }
-  const cands = hit && hit.known ? O.candidates(OPX, hit.code) : [];
-  const msg = cands.length ? `Encontrada: <b>${esc(cands[0].name)}</b> · ${esc(cands[0].set.en)}${cands.length > 1 ? ` · ${cands.length} versões na Liga` : ""}`
-    : hit ? `Li <b class="mono">${esc(hit.code)}</b>, mas esse código não está no catálogo. Confira na busca ou adicione manualmente.`
-    : `Não achei o código. Tente outra foto com mais luz no canto de baixo, ou use a busca.`;
-  setStatus(`<div>${cands.length ? `<b class="mono">${esc(hit.code)}</b> · ` : ""}${msg}</div>
-    <details><summary>Ver o que o leitor viu</summary>
-      <div class="crops" id="crops"></div>
-      <pre>${esc(seen.map((t, i) => `Tentativa ${i + 1}: ${t || "(vazio)"}`).join("\n"))}</pre>
-    </details>`, cands.length ? "" : "warn");
-  $("crops").append(crop);
-  if (cands.length) openPickOP(cands[0]);
-  else if (hit) { $("q").value = hit.code; renderResults(O.search(OPX, hit.code, 40)); }
+}
+function renderCamPanel() {
+  const last = session[0];
+  $("camLast").hidden = !last;
+  if (last) {
+    $("camLast").innerHTML = `${thumb(last.img, last.cor, "")}
+      <span class="nm"><b>${esc(last.pt)} <span class="mono" style="color:var(--muted);font-size:13px;font-weight:600">×${last.qty}</span></b><span><span class="mono">${esc(last.sig)} ${esc(last.num)}</span> · ${esc(last.qual)} · ${esc(langName(last.lang))}</span></span>
+      <button type="button" class="sm" id="camEdit">Editar</button><button type="button" class="sm t" id="camUndo">Desfazer</button>`;
+    $("camEdit").onclick = () => { const i = batch.indexOf(last); if (i >= 0) openSheet({ mode: "edit", index: i }); };
+    $("camUndo").onclick = () => {
+      const i = batch.indexOf(last);
+      if (i >= 0) { last.qty -= 1; if (last.qty <= 0) batch.splice(i, 1); persist(); }
+      session.shift(); lastKey = null; camChip(""); renderCamPanel(); setPaused(paused);
+    };
+  }
+  $("camFilm").innerHTML = session.length
+    ? session.slice(0, 14).map(e => thumb(e.img, e.cor, "s")).join("")
+    : '<span class="hint">Encaixe a carta na moldura. Cada carta lida entra no lote sozinha.</span>';
 }
 
-function setBusy(t) { setStatus(`<div><span class="spin"></span>${esc(t)}</div>`); }
-function setStatus(html, cls) { const s = $("status"); if (!html) { s.hidden = true; s.innerHTML = ""; return; } s.className = "status" + (cls ? " " + cls : ""); s.innerHTML = html; s.hidden = false; }
+/* ---------- foto da galeria: lê uma vez e abre a ficha ---------- */
+$("galleryBtn").onclick = () => $("gallery").click();
+$("gallery").onchange = async e => {
+  const f = e.target.files && e.target.files[0]; e.target.value = ""; if (!f || !IDX) return;
+  showStatus("Lendo a foto…");
+  try {
+    const bmp = await createImageBitmap(f);
+    const W = 900, H = Math.round(W * 88 / 63);
+    const c = document.createElement("canvas"); c.width = W; c.height = H;
+    c.getContext("2d").drawImage(bmp, 0, 0, W, H);
+    const w = await getWorker();
+    const parsed = await readNumber(w, c);
+    const r = C.resolve(IDX, parsed, await ocrName(w, c));
+    showStatus("");
+    if (r.auto) openSheet({ mode: "add", card: r.auto, read: parsed });
+    else if (r.ranked.length) openSheet({ mode: "choose", list: r.ranked.map(x => x.card), read: parsed });
+    else showStatus("Não achei a carta nessa foto. Tente outra com a faixa de baixo nítida, ou busque pelo nome.");
+  } catch (err) { showStatus(window.Tesseract ? "Não consegui ler essa foto." : "O leitor de texto não carregou. Confira a internet."); }
+};
 
-/* ---------- busca ---------- */
-let lastResults = [], lastRead = null;
-function renderResults(list, read) {
-  const box = $("results"); lastResults = list || []; lastRead = read || null;
-  if (!list) { box.hidden = true; box.innerHTML = ""; return; }
-  box.hidden = false;
-  if (GAME === "op") {
-    box.innerHTML = list.length ? list.map((c, i) => `<button class="res" type="button" data-i="${i}">
-      <span class="code">${esc(c.num)}</span>
-      <span class="nm"><b>${esc(c.name)}</b><span>${esc(O.label(OPX, c))} · ${esc(c.set.sig)}${c.ok ? "" : " · não conferida"}</span></span>
-      <span class="tag">${esc(c.rar)}</span></button>`).join("")
-      : `<div class="res" style="cursor:default"><span></span><span class="nm muted">Nada encontrado.</span><span></span></div>`;
+/* ---------- ficha da carta: adicionar, escolher entre várias, editar ---------- */
+let S = null;
+const sheetOpen = () => !$("sheet").hidden;
+function openSheet(o) {
+  if (!IDX && o.mode !== "edit") return;
+  if (o.mode === "choose") {
+    S = { mode: "choose", list: o.list, read: o.read };
+  } else if (o.mode === "edit") {
+    const b = batch[o.index]; if (!b) return;
+    const card = b.ck && IDX ? IDX.byKey.get(b.ck) : null;
+    const exts = b.exts && b.exts.length ? b.exts.slice() : (b.ext ? b.ext.split(", ") : []);
+    let p;
+    if (card) {
+      p = entryFromCard(card, { ver: b.ver, exts, qual: b.qual, lang: b.lang, qty: b.qty });
+      if (!b.ver && b.sig !== p.sig) p.sig = b.sig;
+    } else {
+      p = Object.assign({}, b, { exts });
+    }
+    S = { mode: "edit", entry: b, card, p };
+  } else {
+    const card = o.card;
+    S = { mode: "add", card, read: o.read,
+      p: card ? entryFromCard(card, { lang: o.read && o.read.langCode })
+              : { sig: "", num: "", pt: "", en: "", ed: "", edEn: "", rar: "", cor: "", tot: "", exts: [], ext: "", qual: prefs.qual, lang: prefs.lang, qty: 1, custom: true } };
+  }
+  renderSheet();
+  $("sheet").hidden = false; document.body.style.overflow = "hidden";
+  $("sheetBox").scrollTop = 0;
+}
+function closeSheet() { $("sheet").hidden = true; S = null; if (!camOpen) document.body.style.overflow = ""; }
+$("sheetScrim").onclick = closeSheet;
+document.addEventListener("keydown", e => { if (e.key === "Escape" && sheetOpen()) closeSheet(); });
+
+const seg = (name, opts, val) => `<div class="seg" role="group" data-seg="${name}">${opts.map(([v, l]) => `<button type="button" data-v="${esc(v)}" aria-pressed="${v === val}">${esc(l)}</button>`).join("")}</div>`;
+const extSeg = (list, sel) => `<div class="seg ext" role="group" data-multi="1">${list.map(x => `<button type="button" data-x="${esc(x)}" aria-pressed="${sel.includes(x)}">${esc(x)}</button>`).join("")}</div>`;
+
+function renderSheet() {
+  const box = $("sheetBox");
+  if (S.mode === "choose") {
+    const r = S.read || {};
+    box.innerHTML = `<div class="grab"></div>
+      <div class="head"><div class="nm"><span class="code">${esc(`${r.sig || ""} ${r.num || ""}${r.tot ? "/" + r.tot : ""}`.trim())}</span><h2 id="sheetTitle">Qual destas é a sua carta?</h2><small>${S.list.length} cartas têm esse número.</small></div></div>
+      <div class="list">${S.list.slice(0, 15).map((c, i) => { const L = C.ligaInfo(IDX, c, sigOverrides); return `<button type="button" class="row" data-c="${i}">${thumb(cardImg(c), L.cor, "")}<span class="nm"><b>${esc(L.pt)}</b><span><span class="mono" style="color:var(--accent)">${esc(L.sig)} ${esc(L.num)}</span> · ${esc(c.set.pt || c.set.en)}${c.set.rel ? " · " + c.set.rel.slice(0, 4) : ""}</span></span></button>`; }).join("")}</div>
+      <div class="actions"><button type="button" class="btn" data-act="search">Nenhuma delas: buscar</button></div>`;
     return;
   }
-  box.innerHTML = list.length ? list.map((c, i) => {
-    const L = C.ligaInfo(IDX, c, sigOverrides);
-    return `<button class="res" type="button" data-i="${i}">
-      <span class="code">${esc(L.sig)} ${esc(L.num)}</span>
-      <span class="nm"><b>${esc(L.pt)}</b><span>${c.set.jp && c.en ? esc(c.ja) + " · " : ""}${esc(c.set.en)}${c.set.jp ? " (" + esc(c.set.code) + ")" : ""}${c.set.official ? " · " + c.set.official + " cartas" : ""} · ${esc(c.set.rel.slice(0, 4))}</span></span>
-      <span class="tag">${esc(c.set.serie.split(" ")[0])}</span></button>`;
-  }).join("") : `<div class="res" style="cursor:default"><span></span><span class="nm muted">Nada encontrado.</span><span></span></div>`;
+  const p = S.p, c = S.card, editing = S.mode === "edit";
+  const vers = c ? C.versions(IDX, c) : [];
+  const head = c
+    ? `<div class="head">${thumb(cardImg(c, true), p.cor, "l")}<div class="nm"><span class="code">${esc(p.sig)} · ${esc(p.num)}${p.tot ? "/" + esc(p.tot) : ""}</span><h2 id="sheetTitle">${esc(p.pt)}</h2>${p.en !== p.pt ? `<small>${esc(p.en)}</small>` : ""}${c.set.jp && c.ja && c.ja !== p.pt ? `<small>${esc(c.ja)}</small>` : ""}<small>${esc(c.set.pt || c.set.en)}${c.set.rel ? " · " + esc(c.set.rel.slice(0, 4)) : ""}</small></div></div>`
+    : `<div class="head"><div class="nm"><span class="code">entrada manual</span><h2 id="sheetTitle">${editing ? esc(p.pt) : "Adicionar manualmente"}</h2><small>Para cartas fora do catálogo. Preencha como aparece na Liga.</small></div></div>`;
+  const ident = c
+    ? `${p.jpOnly ? `<div class="field"><label for="pEn">Nome em inglês</label><input type="text" id="pEn" value="" placeholder="Ex.: Ultra Ball"><span class="hint">Sem nome em inglês no catálogo. Se deixar em branco, vai em japonês.</span></div>` : ""}
+       ${vers.length ? `<div class="field"><span class="lbl">Versão na Liga</span>${seg("ver", [["", "Normal"]].concat(vers.map(v => [v.sig, v.label])), p.ver)}</div>` : ""}
+       <div class="field"><label for="pSig">Sigla na Liga</label><input type="text" id="pSig" value="${esc(p.sig)}" autocapitalize="off" autocorrect="off" spellcheck="false"${p.ver ? " disabled" : ""}>${p.verified ? "" : '<span class="hint">Sigla ainda não confirmada na Liga. Confira antes de importar.</span>'}</div>`
+    : `<div class="grid2"><div class="field"><label for="cSig">Sigla</label><input type="text" id="cSig" value="${esc(p.sig)}" autocapitalize="off" autocorrect="off" spellcheck="false"></div><div class="field"><label for="cNum">Número</label><input type="text" id="cNum" value="${esc(p.num)}"></div></div>
+       <div class="field"><label for="cPt">Nome (PT)</label><input type="text" id="cPt" value="${esc(p.pt)}"></div>
+       <div class="field"><label for="cEn">Nome (EN)</label><input type="text" id="cEn" value="${esc(p.en)}"></div>
+       <div class="field"><label for="cEd">Coleção (opcional)</label><input type="text" id="cEd" value="${esc(p.ed)}"></div>`;
+  box.innerHTML = `<div class="grab"></div>${head}${ident}
+    <div class="field"><span class="lbl">Extras</span>${extSeg(EXTRAS_MAIN, p.exts)}
+      <details class="more"${p.exts.some(x => EXTRAS_MORE.includes(x)) ? " open" : ""}><summary>Mais extras</summary>${extSeg(EXTRAS_MORE, p.exts)}</details></div>
+    <div class="field"><span class="lbl">Qualidade</span>${seg("qual", QUALS.map(q => [q, q]), p.qual)}</div>
+    <div class="grid2">
+      <div class="field"><label for="pLang">Idioma</label><select id="pLang">${LANGS.map(([v, l]) => `<option value="${v}"${v === p.lang ? " selected" : ""}>${l}</option>`).join("")}</select></div>
+      <div class="field"><span class="lbl">Quantidade</span><div class="stepper"><button type="button" data-step="-1" aria-label="Menos">−</button><output id="pQty">${p.qty}</output><button type="button" data-step="1" aria-label="Mais">+</button></div></div>
+    </div>
+    <div class="actions">
+      <button type="button" class="btn primary" data-act="save">${editing ? "Salvar" : "Adicionar ao lote"}</button>
+      <div class="row2">${editing ? '<button type="button" class="btn" data-act="remove">Remover do lote</button>' : '<button type="button" class="btn" data-act="cancel">Cancelar</button>'}${c && !editing ? '<button type="button" class="btn" data-act="search">Não é essa</button>' : ""}</div>
+    </div>`;
 }
-let qTimer;
-$("q").addEventListener("input", e => { clearTimeout(qTimer); const v = e.target.value; qTimer = setTimeout(() => renderResults(!v.trim() || !ready() ? null : GAME === "op" ? O.search(OPX, v, 40) : C.search(IDX, v, 40)), 150); });
-$("results").addEventListener("click", e => {
-  const b = e.target.closest("[data-i]"); if (!b) return;
-  if (GAME === "op") openPickOP(lastResults[+b.dataset.i]); else openPick(lastResults[+b.dataset.i], lastRead);
-});
-$("manualBtn").onclick = () => openPick(null, null);
-
-/* ---------- carta escolhida ---------- */
-let pick = null;
-function openPick(card, read) {
-  const L = card ? C.ligaInfo(IDX, card, sigOverrides) : null;
-  pick = {
-    card, custom: !card, setId: card ? card.set.id : null, defaultSig: card ? C.ligaInfo(IDX, card, {}).sig : "",
-    vers: card ? C.versions(IDX, card) : [], ver: "", exts: [],
-    sig: L ? L.sig : "", num: L ? L.num : "", ed: L ? L.ed : "", edEn: L ? L.edEn : "", pt: L ? L.pt : "", en: L ? L.en : "",
-    rar: L ? L.rar : "", cor: L ? L.cor : "", tot: L ? L.tot : "", verified: L ? L.verified : false,
-    ext: "", qual: prefs.qual, lang: (read && read.langCode) || (card && card.set.jp ? "JP" : prefs.lang), qty: 1, jpOnly: L ? !!L.jpOnly : false
-  };
-  renderPick();
-  $("pick").hidden = false;
-  $("pick").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
-}
-const segHTML = (name, opts, val) => `<div class="seg" role="group" data-seg="${name}">${opts.map(([v, l]) => `<button type="button" data-v="${esc(v)}" aria-pressed="${v === val}">${esc(l)}</button>`).join("")}</div>`;
-const extrasHTML = (list, sel) => `<div class="seg" role="group" data-multi="1">${list.map(x => `<button type="button" data-x="${esc(x)}" aria-pressed="${sel.includes(x)}">${esc(x)}</button>`).join("")}</div>`;
-function refreshPickNumbers() {
-  const L = C.ligaInfo(IDX, pick.card, sigOverrides, pick.ver);
-  Object.assign(pick, { sig: L.sig, num: L.num, ed: L.ed, edEn: L.edEn });
-  const strip = $("pick").querySelector(".strip .mono");
-  if (strip) strip.textContent = `${pick.sig} · ${pick.num}${pick.tot ? "/" + pick.tot : ""}`;
-  const si = $("pSig"); if (si) si.value = pick.sig;
-}
-function renderPick() {
-  const p = pick, c = p.card;
-  $("pick").innerHTML = `<div class="picked">
-    <div class="strip"><span class="mono">${esc(p.sig || "???")} · ${esc(p.num || "—")}${p.tot ? "/" + esc(p.tot) : ""}</span>
-      ${p.custom ? '<span class="tag flag">manual · conferir</span>' : p.verified ? '<span class="tag good">sigla da Liga</span>' : `<span class="tag">${esc(c.set.en)}</span>`}</div>
-    <div class="body">
-      ${p.custom && GAME === "op" ? `<div class="note"><b>Entrada manual.</b> Preencha como aparece na LigaOnePiece: a sigla da edição (ex.: OP-07-PR) e o Card # (ex.: OP07-038-PA).</div>
-        <div class="grid2">
-          <div class="field"><label for="cSig">Sigla da edição</label><input type="text" id="cSig" autocapitalize="characters" autocorrect="off" spellcheck="false" value=""></div>
-          <div class="field"><label for="cNum">Card #</label><input type="text" id="cNum" autocapitalize="characters" autocorrect="off" spellcheck="false" value="${esc(p.num)}"></div>
-        </div>
-        <div class="field"><label for="cEn">Nome da carta</label><input type="text" id="cEn" value=""></div>
-        <div class="field"><label for="cEd">Edição (opcional)</label><input type="text" id="cEd" value=""></div>`
-      : p.custom ? `<div class="note"><b>Entrada manual.</b> Use para cartas fora do catálogo, como as japonesas. Preencha como aparece na Liga.</div>
-        <div class="grid2">
-          <div class="field"><label for="cSig">Sigla</label><input type="text" id="cSig" autocapitalize="off" autocorrect="off" spellcheck="false" value=""></div>
-          <div class="field"><label for="cNum">Número</label><input type="text" id="cNum" value=""></div>
-        </div>
-        <div class="field"><label for="cPt">Nome (PT)</label><input type="text" id="cPt" value=""></div>
-        <div class="field"><label for="cEn">Nome (EN)</label><input type="text" id="cEn" value=""></div>
-        <div class="field"><label for="cEd">Coleção (opcional)</label><input type="text" id="cEd" value=""></div>`
-      : `<div class="cardname">${esc(p.pt)}${p.en !== p.pt ? `<small>${esc(p.en)}</small>` : ""}${c.set.jp && c.en ? `<small>${esc(c.ja)}</small>` : ""}<small>${esc(c.set.pt || c.set.en)}${c.set.jp ? " · " + esc(c.set.code) : ""} · ${esc(c.set.rel.slice(0, 4))}</small></div>
-        ${p.jpOnly ? `<div class="field"><label for="pEn">Nome em inglês</label><input type="text" id="pEn" value="" placeholder="Ex.: Ultra Ball"><span class="hint">Não temos o nome em inglês desta carta. Se souber, preencha; se não, vai com o nome em japonês.</span></div>` : ""}
-        <div class="field"><label for="pSig">Sigla na Liga</label><input type="text" id="pSig" value="${esc(p.sig)}" autocapitalize="off" autocorrect="off" spellcheck="false">${p.verified ? "" : `<span class="hint">Sigla ainda não confirmada na Liga. Confira na página da coleção antes de importar.</span>`}</div>
-        ${p.vers.length ? `<div class="field"><span class="lbl">Versão na Liga</span>${segHTML("ver", [["", "Normal"]].concat(p.vers.map(v => [v.sig, v.label])), p.ver)}</div>` : ""}`}
-      ${commonPickHTML(p)}
-    </div></div>`;
-}
-/* Extras, qualidade, idioma, quantidade e botões: iguais nos dois jogos */
-function commonPickHTML(p) {
-  return `<div class="field"><span class="lbl">Extras</span>${extrasHTML(exMain(), p.exts)}
-        <details class="more"${p.exts.some(x => exMore().includes(x)) ? " open" : ""}><summary>Mais extras</summary>${extrasHTML(exMore(), p.exts)}</details></div>
-      <div class="field"><span class="lbl">Qualidade</span>${segHTML("qual", QUALS.map(q => [q, q]), p.qual)}</div>
-      <div class="grid2">
-        <div class="field"><label for="pLang">Idioma</label><select id="pLang">${LANGS.map(([v, l]) => `<option value="${v}"${v === p.lang ? " selected" : ""}>${l}</option>`).join("")}</select></div>
-        <div class="field"><span class="lbl">Quantidade</span><div class="stepper"><button type="button" data-step="-1" aria-label="Menos">−</button><output id="pQty">${p.qty}</output><button type="button" data-step="1" aria-label="Mais">+</button></div></div>
-      </div>
-      <div class="row-actions"><button class="btn" id="pCancel" type="button">Cancelar</button><button class="btn primary" id="pAdd" type="button">Adicionar ao lote</button></div>`;
-}
-
-/* ---------- carta escolhida: One Piece ---------- */
-function openPickOP(card) {
-  const cands = O.candidates(OPX, card.base);
-  pick = { game: "op", card, cands, exts: [], qual: prefs.qual, lang: card.num.endsWith("-JP") ? "JP" : prefs.lang, qty: 1, ...O.rowOf(card) };
-  renderPickOP();
-  $("pick").hidden = false;
-  $("pick").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
-}
-function renderPickOP() {
-  const p = pick, c = p.card, miss = O.missingAlts(OPX, c.base);
-  $("pick").innerHTML = `<div class="picked">
-    <div class="strip"><span class="mono">${esc(p.sig)} · ${esc(p.num)}</span>
-      ${c.ok ? '<span class="tag good">conferida na Liga</span>' : '<span class="tag flag">conferir na Liga</span>'}</div>
-    <div class="body">
-      <div class="cardname">${esc(c.name)}<small>${esc(c.set.en)} · ${esc(O.label(OPX, c))}${c.rar ? " · " + esc(c.rar) : ""}${O.COLORS[c.cor] ? " · " + O.COLORS[c.cor] : ""}</small></div>
-      ${p.cands.length > 1 ? `<div class="field"><label for="pVer">Versão na Liga (${p.cands.length})</label>
-        <select id="pVer">${p.cands.map((x, i) => `<option value="${i}"${x === c ? " selected" : ""}>${esc(O.label(OPX, x))} — ${esc(x.set.sig)}${x.ok ? "" : " (não conferida)"}</option>`).join("")}</select>
-        <span class="hint" style="color:var(--muted)">O leitor não diferencia pré-release, parallel e promos com o mesmo código. Escolha a sua.</span></div>` : ""}
-      ${c.ok ? "" : `<div class="note"><b>Carta da base oficial.</b> Ela ainda não está nos seus exports da LigaOnePiece, então o nome pode estar um pouco diferente do da Liga.</div>`}
-      ${miss ? `<div class="note"><b>${miss} arte${miss > 1 ? "s" : ""} alternativa${miss > 1 ? "s" : ""} fora do catálogo.</b> Se a sua for uma delas, ajuste o Card # abaixo (o sufixo muda por edição, ex.: -PA ou -AA) ou mande o export completo dessa edição para a pasta liga-op/.</div>` : ""}
-      <div class="grid2">
-        <div class="field"><label for="pSig">Sigla da edição</label><input type="text" id="pSig" value="${esc(p.sig)}" autocapitalize="characters" autocorrect="off" spellcheck="false"></div>
-        <div class="field"><label for="pNum">Card #</label><input type="text" id="pNum" value="${esc(p.num)}" autocapitalize="characters" autocorrect="off" spellcheck="false"></div>
-      </div>
-      ${commonPickHTML(p)}
-    </div></div>`;
-}
-$("pick").addEventListener("click", e => {
-  const s = e.target.closest("[data-seg] button");
+$("sheetBox").addEventListener("click", e => {
+  if (!S) return;
+  const ch = e.target.closest("[data-c]");
+  if (ch) { openSheet({ mode: "add", card: S.list[+ch.dataset.c], read: S.read }); return; }
   const x = e.target.closest("[data-multi] button");
-  if (x) {
-    const v = x.dataset.x, i = pick.exts.indexOf(v);
-    if (i >= 0) pick.exts.splice(i, 1); else pick.exts.push(v);
-    x.setAttribute("aria-pressed", i < 0);
-    return;
-  }
+  if (x) { const v = x.dataset.x, i = S.p.exts.indexOf(v); if (i >= 0) S.p.exts.splice(i, 1); else S.p.exts.push(v); x.setAttribute("aria-pressed", String(i < 0)); return; }
+  const s = e.target.closest("[data-seg] button");
   if (s) {
-    const k = s.parentElement.dataset.seg;
-    pick[k] = s.dataset.v; s.parentElement.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b === s));
-    if (k === "ver") refreshPickNumbers();
+    const k = s.parentElement.dataset.seg; S.p[k] = s.dataset.v;
+    s.parentElement.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b === s)));
+    if (k === "ver" && S.card) {
+      S.p.lang = $("pLang").value;
+      const L = C.ligaInfo(IDX, S.card, sigOverrides, S.p.ver);
+      Object.assign(S.p, { sig: L.sig, num: L.num, ed: L.ed, edEn: L.edEn });
+      const top = $("sheetBox").scrollTop; renderSheet(); $("sheetBox").scrollTop = top;
+    }
     return;
   }
   const st = e.target.closest("[data-step]");
-  if (st) { pick.qty = Math.max(1, pick.qty + +st.dataset.step); $("pQty").textContent = pick.qty; return; }
-  if (e.target.id === "pCancel") closePick();
-  if (e.target.id === "pAdd") addPick();
+  if (st) { S.p.qty = Math.max(1, S.p.qty + +st.dataset.step); $("pQty").textContent = S.p.qty; return; }
+  const act = e.target.closest("[data-act]");
+  if (!act) return;
+  const a = act.dataset.act, read = S.read;
+  if (a === "cancel") closeSheet();
+  else if (a === "search") goSearch(read && read.num ? read.num : undefined);
+  else if (a === "remove") {
+    const i = batch.indexOf(S.entry);
+    if (i >= 0) batch.splice(i, 1);
+    session = session.filter(e2 => batch.includes(e2));
+    persist(); closeSheet(); renderCamPanel(); toast("Removida do lote.");
+  } else if (a === "save") saveSheet();
 });
-$("pick").addEventListener("change", e => {
-  if (e.target.id === "pLang") pick.lang = e.target.value;
-  if (e.target.id === "pVer") {
-    const c = pick.cands[+e.target.value];
-    Object.assign(pick, { card: c }, O.rowOf(c));
-    if (c.num.endsWith("-JP")) pick.lang = "JP";
-    renderPickOP();
-  }
-});
-function closePick() { $("pick").hidden = true; $("pick").innerHTML = ""; pick = null; }
-function addPick() {
-  const p = pick;
-  if (p.game === "op") {
-    p.sig = $("pSig").value.trim().toUpperCase(); p.num = $("pNum").value.trim().toUpperCase();
-    if (!p.sig || !p.num) { toast("Informe a sigla da edição e o Card #."); return; }
-    /* Sigla ou número trocados à mão: procura a carta certa no catálogo para manter nome e edição */
-    if (p.sig !== p.card.set.sig || p.num !== p.card.num) {
-      const hit = OPX.cards.find(c => c.set.up === p.sig && c.num === p.num);
-      if (hit) Object.assign(p, O.rowOf(hit));
-      else { const s = OPX.sigs.get(p.sig); p.edEn = s ? s.en : ""; p.custom = true; }
-    }
-  } else if (p.custom && GAME === "op") {
-    p.sig = $("cSig").value.trim().toUpperCase(); p.num = $("cNum").value.trim().toUpperCase();
-    p.en = C.fold($("cEn").value.trim()); p.pt = "";
-    const s = OPX && OPX.sigs.get(p.sig);
-    p.ed = ""; p.edEn = C.fold($("cEd").value.trim()) || (s ? s.en : "");
-    if (!p.sig || !p.num || !p.en) { toast("Preencha sigla, Card # e nome."); return; }
-  } else if (p.custom) {
+function saveSheet() {
+  const p = S.p, c = S.card;
+  p.lang = $("pLang").value;
+  if (!c) {
     p.sig = $("cSig").value.trim(); p.num = $("cNum").value.trim();
     p.pt = C.fold($("cPt").value.trim()); p.en = C.fold($("cEn").value.trim());
     p.ed = C.fold($("cEd").value.trim()); p.edEn = p.ed;
     if (!p.sig || !p.num || !(p.pt || p.en)) { toast("Preencha sigla, número e pelo menos um nome."); return; }
     if (!p.pt) p.pt = p.en; if (!p.en) p.en = p.pt;
+    p.custom = true;
   } else {
-    const sig = $("pSig").value.trim() || p.defaultSig;
-    if (sig !== p.sig && !p.ver) {
-      if (sig === p.defaultSig) delete sigOverrides[p.setId]; else sigOverrides[p.setId] = sig;
-      save("ligaScanner.sigs.v1", sigOverrides);
-      const L = C.ligaInfo(IDX, p.card, sigOverrides, p.ver); Object.assign(p, { sig: L.sig, num: L.num, ed: L.ed, edEn: L.edEn, pt: L.pt, en: L.en, rar: L.rar, cor: L.cor });
+    if (!p.ver) {
+      const defSig = C.ligaInfo(IDX, c, {}).sig;
+      const sig = ($("pSig").value || "").trim() || defSig;
+      if (sig !== C.ligaInfo(IDX, c, sigOverrides).sig) {
+        if (sig === defSig) delete sigOverrides[c.set.id]; else sigOverrides[c.set.id] = sig;
+        save("ligaScanner.sigs.v1", sigOverrides);
+      }
     }
-    if (!p.sig) { toast("Informe a sigla da coleção na Liga."); $("pSig").focus(); return; }
+    Object.assign(p, entryFromCard(c, { ver: p.ver, exts: p.exts, qual: p.qual, lang: p.lang, qty: p.qty }));
+    if (!p.sig) { toast("Informe a sigla da coleção na Liga."); return; }
     const enIn = $("pEn");
     if (enIn && enIn.value.trim()) { p.en = p.pt = C.fold(enIn.value.trim()); }
   }
-  p.ext = exAll().filter(x => p.exts.includes(x)).join(", ");
+  p.ext = EXTRAS.filter(x => p.exts.includes(x)).join(", ");
   /* o idioma das japonesas não vira padrão para as próximas cartas */
-  const jpCard = p.game === "op" ? p.num.endsWith("-JP") : p.card && p.card.set.jp;
-  prefs = { qual: p.qual, lang: jpCard ? prefs.lang : p.lang }; save(G().prefsKey, prefs);
-  const key = [p.sig, p.num, p.pt || p.en, p.ext, p.qual, p.lang].join("|");
-  const ex = batch.find(b => b.key === key);
-  if (ex) ex.qty += p.qty;
-  else batch.unshift({ key, sig: p.sig, ed: p.ed, edEn: p.edEn, pt: p.pt, en: p.en, rar: p.rar, cor: p.cor, num: p.num, tot: p.tot, ext: p.ext, qual: p.qual, lang: p.lang, qty: p.qty, custom: !!p.custom || (p.game === "op" && !p.card.ok) });
-  persist(); closePick(); $("q").value = ""; renderResults(null); setStatus(null);
-  toast(`${p.pt || p.en} adicionada (${p.qty}×).`);
-  if (stream) $("cam").scrollIntoView({ block: "center" });
+  prefs = { qual: p.qual, lang: c && c.set.jp ? prefs.lang : p.lang }; save("ligaScanner.prefs.v1", prefs);
+  if (S.mode === "edit") {
+    const old = S.entry, si = session.indexOf(old), i = batch.indexOf(old);
+    if (i >= 0) batch.splice(i, 1);
+    const e = addEntry(Object.assign({}, p, { card: c }));
+    if (si >= 0) session[si] = e;
+    toast("Alterações salvas.");
+  } else {
+    const e = addEntry(Object.assign({}, p, { card: c }));
+    if (camOpen) { session.unshift(e); if (c) lastKey = c.key; }
+    toast(`${e.pt} adicionada (${p.qty}×).`);
+    if (!camOpen) { $("q").value = ""; runSearch(); }
+  }
+  closeSheet(); renderCamPanel(); if (camOpen) setPaused(paused);
 }
 
-/* ---------- lote ---------- */
-function persist() { save(G().batchKey, batch); renderBatch(); }
-function renderBatch() {
-  const n = batch.reduce((a, b) => a + b.qty, 0);
-  $("tCards").textContent = n;
-  $("tRows").textContent = (n === 1 ? "carta" : "cartas") + ` · ${batch.length} ${batch.length === 1 ? "linha" : "linhas"}`;
-  $("clearBtn").hidden = !batch.length;
-  $("list").innerHTML = batch.length ? batch.map((b, i) => `<div class="item">
-      <span class="code">${GAME === "op" ? esc(b.num) : esc(b.sig) + " " + esc(b.num)}</span>
-      <div class="nm"><b>${esc(b.pt || b.en)}</b><div class="meta">
-        ${GAME === "op" ? `<span class="tag">${esc(b.sig)}</span>` : ""}<span class="tag">${esc(b.ext || "Normal")}</span><span class="tag">${esc(b.qual)}</span><span class="tag">${esc(b.lang || "—")}</span>${b.custom ? '<span class="tag flag">conferir</span>' : ""}
-      </div></div>
-      <div class="q"><button type="button" data-i="${i}" data-d="-1" aria-label="Diminuir ${esc(b.pt || b.en)}">−</button><span>${b.qty}</span><button type="button" data-i="${i}" data-d="1" aria-label="Aumentar ${esc(b.pt || b.en)}">+</button></div>
-    </div>`).join("")
-    : `<div class="empty"><b>Nenhuma carta no lote ainda.</b>
-       <ol><li><b>Abra a câmera</b> e encaixe a carta na moldura, com ${GAME === "op" ? "o código do canto de baixo" : "a faixa de baixo"} bem iluminado${GAME === "op" ? "" : "a"}.</li>
-       <li>Confira a carta encontrada e ajuste acabamento, qualidade, idioma e quantidade.</li>
-       <li><b>Baixe o CSV</b> e importe em Minha Coleção na ${G().site}.</li></ol></div>`;
-  $("raw").value = csv();
-}
-$("list").addEventListener("click", e => {
-  const b = e.target.closest("[data-d]"); if (!b) return;
-  const it = batch[+b.dataset.i]; it.qty += +b.dataset.d;
-  if (it.qty <= 0) batch.splice(+b.dataset.i, 1);
-  persist();
-});
-$("clearBtn").onclick = () => { $("confirmClear").hidden = false; };
-$("clearNo").onclick = () => { $("confirmClear").hidden = true; };
-$("clearYes").onclick = () => { batch = []; persist(); $("confirmClear").hidden = true; toast("Lote apagado."); };
-
-/* ---------- exportar ---------- */
-const csv = () => (GAME === "op" ? O : C).buildCSV(batch.slice().reverse());
-function fileName() { const d = new Date(), p = n => String(n).padStart(2, "0"); return `${G().file}-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}.csv`; }
-const csvFile = () => new File([csv()], fileName(), { type: "text/csv" });
-$("dlBtn").onclick = () => {
-  if (!batch.length) { toast("Adicione cartas antes de baixar."); return; }
-  const url = URL.createObjectURL(new Blob([csv()], { type: "text/csv;charset=utf-8" }));
-  const a = document.createElement("a"); a.href = url; a.download = fileName(); document.body.append(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 4000);
-};
-if (navigator.canShare && navigator.canShare({ files: [new File(["x"], "t.csv", { type: "text/csv" })] })) {
-  $("shareBtn").hidden = false;
-  $("shareBtn").onclick = async () => {
-    if (!batch.length) { toast("Adicione cartas antes de enviar."); return; }
-    try { await navigator.share({ files: [csvFile()], title: "Lote " + G().site }); } catch (e) {}
-  };
-}
-$("copyBtn").onclick = async () => {
-  if (!batch.length) { toast("Adicione cartas antes de copiar."); return; }
-  try { await navigator.clipboard.writeText(csv()); toast("CSV copiado."); }
-  catch (e) { $("rawBox").open = true; const t = $("raw"); t.focus(); t.select(); toast("Selecionei o texto: copie manualmente."); }
-};
-
-let tt; function toast(m) { const t = $("toast"); t.textContent = m; t.hidden = false; clearTimeout(tt); tt = setTimeout(() => t.hidden = true, 2600); }
-applyGame();
-renderBatch();
+let tt; function toast(m) { const t = $("toast"); t.textContent = m; t.hidden = false; clearTimeout(tt); tt = setTimeout(() => { t.hidden = true; }, 2400); }
+renderAll();
 </script>
 </body>
 </html>
