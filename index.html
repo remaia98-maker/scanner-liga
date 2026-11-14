@@ -576,9 +576,12 @@ $("clearNo").onclick = () => { $("confirmClear").hidden = true; };
 $("clearYes").onclick = () => { batch = []; persist(); $("confirmClear").hidden = true; toast("Lote apagado."); };
 
 /* adiciona uma linha ao lote (junta com uma igual e traz para o topo) */
-function addEntry(p) {
+/* Cada carta adicionada começa com 1 (ou a quantidade escolhida) numa linha própria. Só soma numa
+   linha existente se ela foi lida nesta mesma sessão de câmera (a mesma carta lida de novo);
+   linhas iguais de outros momentos continuam separadas no lote e são somadas no CSV. */
+function addEntry(p, noMerge) {
   const key = [p.sig, p.num, p.pt || p.en, p.ext, p.qual, p.lang].join("|");
-  const ex = batch.find(b => b.key === key);
+  const ex = camOpen && !noMerge ? session.find(b => b.key === key && batch.includes(b)) : null;
   if (ex) { ex.qty += p.qty; ex.at = Date.now(); batch.splice(batch.indexOf(ex), 1); batch.unshift(ex); persist(); return ex; }
   const e = { key, sig: p.sig, ed: p.ed, edEn: p.edEn, pt: p.pt, en: p.en, rar: p.rar, cor: p.cor, num: p.num, tot: p.tot, ext: p.ext,
     exts: (p.exts || []).slice(), ver: p.ver || "", qual: p.qual, lang: p.lang, qty: p.qty, custom: !!p.custom, verified: p.custom ? false : !!p.verified,
@@ -595,7 +598,16 @@ function entryFromCard(card, o) {
 }
 
 /* ---------- exportar ---------- */
-const csv = () => (isOP() ? O : C).buildCSV(batch.slice().reverse());
+/* no CSV, linhas da mesma carta (mesma versão, extras, qualidade e idioma) viram uma, com as quantidades somadas */
+function mergedRows() {
+  const m = new Map();
+  for (const b of batch.slice().reverse()) {
+    const k = [b.sig, b.num, b.pt || b.en, b.ext, b.qual, b.lang].join("|"), x = m.get(k);
+    if (x) x.qty += b.qty; else m.set(k, Object.assign({}, b));
+  }
+  return [...m.values()];
+}
+const csv = () => (isOP() ? O : C).buildCSV(mergedRows());
 function fileName() { const d = new Date(), p = n => String(n).padStart(2, "0"); return `${G().file}-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}.csv`; }
 function download() {
   if (!batch.length) { toast("Adicione cartas antes de exportar."); return; }
@@ -1009,16 +1021,9 @@ const finishOf = e => { const x = extsOf(e); return x.includes("Reverse Foil") ?
 const cardOf = e => !e || !e.ck || !ready() ? null : (isOP() ? OPX.byKey : IDX.byKey).get(e.ck) || null;
 const isJPCard = e => { if (isOP()) return /-JP$/.test(e.num); const c = cardOf(e); return !!(c && c.set.jp); };
 const keyOf = p => [p.sig, p.num, p.pt || p.en, p.ext, p.qual, p.lang].join("|");
-/* muda uma linha do lote e salva na hora; se ela ficar igual a outra, as duas viram uma */
+/* muda uma linha do lote e salva na hora (a quantidade dela não se mistura com outras linhas) */
 function updateEntry(e, f) {
   Object.assign(e, f); e.key = keyOf(e);
-  const dup = batch.find(b => b !== e && b.key === e.key);
-  if (dup) {
-    dup.qty += e.qty; batch.splice(batch.indexOf(e), 1);
-    session = session.map(x => x === e ? dup : x);
-    if (cur === e) cur = dup;
-    e = dup;
-  }
   persist(); renderCamPanel();
   return e;
 }
@@ -1354,9 +1359,11 @@ function saveSheet() {
   const jpCard = isOP() ? /-JP$/.test(p.num) : c && c.set.jp;
   prefs = { qual: p.qual, lang: jpCard ? prefs.lang : p.lang }; save(G().prefsKey, prefs);
   if (S.mode === "edit") {
+    /* editar muda só esta linha: mesma posição no lote, sem somar com outra */
     const old = S.entry, si = session.indexOf(old), i = batch.indexOf(old);
     if (i >= 0) batch.splice(i, 1);
-    const e = addEntry(Object.assign({}, p, { card: c }));
+    const e = addEntry(Object.assign({}, p, { card: c }), true);
+    if (i > 0) { batch.splice(batch.indexOf(e), 1); batch.splice(i, 0, e); persist(); }
     if (si >= 0) session[si] = e;
     if (cur === old) cur = e;
     toast("Alterações salvas.");
