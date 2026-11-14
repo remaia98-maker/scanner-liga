@@ -115,18 +115,20 @@
     return Math.max(0, n - have);
   }
 
-  /* Endereços da imagem, em ordem de tentativa, separados por "|": a CDN do TCGplayer (código do
-     produto, vindo do TCGCSV na atualização semanal) e o site da Bandai, que costuma recusar
-     imagens abertas fora do site deles. A tela passa para o próximo quando um falha. */
+  /* Endereços da imagem, em ordem de tentativa, separados por "|" (a tela passa para o próximo
+     quando um falha). Todos usam o código oficial da Bandai (OP01-001, e OP01-001_p1 para a
+     primeira arte alternativa):
+     1. static.dotgg.gg (onepiece.gg), que abre imagens fora do próprio site;
+     2. CDN do TCGplayer, quando a atualização semanal trouxe o código do produto;
+     3. site da Bandai, que costuma recusar imagens abertas fora do site deles. */
   function imageUrl(idx, c) {
     if (!c) return "";
     const out = [];
+    let id = c.base || "";
+    if (id && prefixOf(id) !== "P" && c.set.sig === idx.home[prefixOf(id)] && c.num !== id && !/-JP$/.test(c.num) && idx.alts[id] === 1) id += "_p1";
+    if (id) out.push("https://static.dotgg.gg/onepiece/card/" + id + ".webp");
     if (c.pid) out.push("https://tcgplayer-cdn.tcgplayer.com/product/" + c.pid + "_400w.jpg");
-    if (c.base) {
-      let id = c.base;
-      if (prefixOf(c.base) !== "P" && c.set.sig === idx.home[prefixOf(c.base)] && c.num !== c.base && !/-JP$/.test(c.num) && idx.alts[c.base] === 1) id += "_p1";
-      out.push("https://en.onepiece-cardgame.com/images/cardlist/card/" + id + ".png");
-    }
+    if (id) out.push("https://en.onepiece-cardgame.com/images/cardlist/card/" + id + ".png");
     return out.join("|");
   }
 

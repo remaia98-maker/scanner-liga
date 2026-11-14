@@ -33,7 +33,7 @@ Na primeira leitura, o app baixa o leitor de texto (Tesseract, cerca de 10 MB). 
 ## Como usar
 
 - **Início:** o app abre na busca (nome, número ou sigla, com filtros para japonesas, promos e antigas). Abaixo aparecem as últimas cartas adicionadas e um resumo do lote.
-- **Câmera contínua:** o botão redondo âmbar abre a câmera. O app lê só a faixa de baixo da carta (sigla e número): aproxime até essa faixa ocupar o retângulo, mesmo que o resto da carta saia da tela. No Android, use o zoom (1,5× ou 2×) para não precisar chegar tão perto. Cada carta reconhecida entra no lote sozinha, sem confirmação; a mesma carta só conta de novo depois de sair e voltar para o retângulo. Use **Pausar** para parar a leitura e **Buscar** quando a carta não for reconhecida.
+- **Câmera contínua:** o botão redondo âmbar abre a câmera. O app lê só a faixa de baixo da carta (sigla e número): aproxime até essa faixa ocupar o retângulo, mesmo que o resto da carta saia da tela. No Android, use o zoom (1,5× ou 2×) para não precisar chegar tão perto. Cada carta reconhecida entra no lote sozinha, sem confirmação; a mesma carta não entra de novo enquanto continuar na câmera, mesmo se você aproximar, afastar ou o foco oscilar. Ela só conta outra vez depois de ficar 6 segundos sem aparecer; para outra cópia da mesma carta, é mais rápido tocar no **+**. Use **Pausar** para parar a leitura e **Buscar** quando a carta não for reconhecida.
 - **Painel da carta lida (como no ManaBox):** embaixo aparece a última carta lida e uma barra de ajustes. Tudo o que você muda ali é salvo na hora:
   - **Normal / Foil / Reverse:** toque para alternar o acabamento (em One Piece, Normal ou Foil).
   - **Sigla e número:** toque para ver todas as versões da carta (outras coleções, Master Ball, parallel, pré-release, promos) com as imagens, e escolher a sua. Há um campo para filtrar por coleção ou número.
@@ -63,7 +63,7 @@ Toque em **One Piece** no seletor do topo. O botão da câmera e os destaques fi
 - **Cartas "conferir":** vieram da base oficial e ainda não estão nos seus exports. Nome e Card # seguem o padrão da Liga, mas vale conferir na primeira importação.
 - **Artes alternativas fora do catálogo:** quando a base oficial tem mais artes daquela carta do que o catálogo da Liga, a ficha avisa. Ajuste o **Card #** (o sufixo muda por edição, por exemplo `-PA` na OP-07 e `-AA` na OP-11) ou complete o export dessa edição.
 - **Japonesas:** a EB-04 da Liga é só japonesa (Card # com `-JP`); ao escolher essa versão, o idioma muda sozinho para Japonês.
-- **Miniaturas:** vêm da CDN do TCGplayer. A tarefa semanal baixa do TCGCSV o código de produto de cada carta e escolhe o produto com as mesmas etiquetas do nome da Liga (Parallel, Manga, SP…). Depois de enviar os arquivos novos, rode **Actions → Atualizar catálogo → Run workflow** uma vez para as miniaturas aparecerem. Sem esse código, o app tenta a imagem do site da Bandai, que costuma ser recusada fora do site deles.
+- **Miniaturas:** imagem oficial (mesmo código da Bandai) servida pelo onepiece.gg, que funciona sem configurar nada. Se ela falhar, o app tenta a CDN do TCGplayer (código de produto que a tarefa semanal baixa do TCGCSV) e por último o site da Bandai, que costuma recusar imagens abertas fora do site deles.
 
 ### Dados da LigaOnePiece (pasta `liga-op/`)
 

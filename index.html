@@ -741,7 +741,7 @@ function setPaused(v) {
 }
 async function openCamera() {
   if (!ready()) return;
-  $("cam").hidden = false; camOpen = true; session = []; cur = null; forget(); modeIx = 0;
+  $("cam").hidden = false; camOpen = true; session = []; cur = null; forget(); modeIx = 0; seenAdds = new Map(); lastAddKey = null;
   renderCamPanel(); camChip(""); setPaused(false); pill("Abrindo câmera…", false);
   document.body.style.overflow = "hidden";
   getWorker().then(() => { if (camOpen) setPaused(paused); })
@@ -865,6 +865,22 @@ async function worker_ready_for_camera() {
 /* Lê um quadro. Uma leitura com sigla, número e total coerentes já vale; nas outras, o mesmo resultado
    precisa aparecer de novo. A carta não entra de novo enquanto continuar na faixa. */
 function forget() { lastKey = recentSig = null; pendKeys.clear(); recentTexts = []; }
+/* Contra cópias repetidas: cada carta adicionada fica lembrada enquanto continuar sendo vista.
+   Ela só entra de novo depois de ficar RESCAN_MS sem aparecer (para outra cópia, use o +).
+   E enquanto a última carta ainda aparece, trocar para outra pede uma leitura a mais: ao aproximar
+   a câmera, o leitor às vezes troca um dígito (038 vira 036). */
+const RESCAN_MS = 6000, SWITCH_MS = 1500;
+let seenAdds = new Map(), lastAddKey = null;
+function repeatOf(keys, now) {
+  if (!keys.some(k => { const t = seenAdds.get(k); return t && now - t < RESCAN_MS; })) return false;
+  for (const k of keys) if (seenAdds.has(k)) seenAdds.set(k, now);
+  return true;
+}
+function markAdded(keys, now) { for (const k of keys) seenAdds.set(k, now); lastAddKey = keys[0]; }
+function needReads(base, now) {
+  const t = lastAddKey && seenAdds.get(lastAddKey);
+  return t && now - t < SWITCH_MS ? base + 1 : base;
+}
 /* conta quantas vezes cada resultado apareceu desde a última carta (cada um com seu contador) */
 function pend(key) { const n = (pendKeys.get(key) || 0) + 1; pendKeys.set(key, n); return n; }
 async function scanOnce() {
@@ -907,21 +923,23 @@ async function scanOnce() {
   const code = `${parsed.sig || ""} ${parsed.num}${parsed.tot ? "/" + parsed.tot : ""}`.trim();
   if (r.auto) {
     const key = r.auto.key;
-    if (key === lastKey) return;
+    if (repeatOf([key], now)) return;
     const tot = parsed.tot ? parseInt(String(parsed.tot).replace(/\D/g, ""), 10) : 0;
     const strong = parsed.sig && !parsed.fuzzy && !parsed.merged && tot && r.auto.set.official === tot;
-    if (!strong && pend(key) < 2) return;
-    forget(); lastKey = key;
+    if (pend(key) < needReads(strong ? 1 : 2, now)) return;
+    forget(); lastKey = key; markAdded([key, "amb:" + `${parsed.num}${parsed.tot ? "/" + parsed.tot : ""}`], now);
     added(addEntry(entryFromCard(r.auto, { lang: parsed.langCode })));
     camChip("");
   } else if (r.ranked.length) {
     /* ambíguo: troca de modo para tentar ler a sigla; depois de 3 leituras iguais, adiciona a mais
        provável sem perguntar. As outras aparecem primeiro na escolha de versão. */
     modeIx = (modeIx + 1) % MODES.length;
-    const key = "amb:" + code;
-    if (key === lastKey || pend(key) < 3) return;
+    const key = "amb:" + code, list = r.ranked.map(x => x.card);
+    const keys = [key, "amb:" + `${parsed.num}${parsed.tot ? "/" + parsed.tot : ""}`].concat(list.map(c => c.key));
+    if (repeatOf(keys, now)) return;           /* a mesma carta, já adicionada com ou sem a sigla */
+    if (key === lastKey || pend(key) < needReads(3, now)) return;
     forget(); lastKey = key;
-    const list = r.ranked.map(x => x.card);
+    markAdded([list[0].key].concat(keys), now);
     const e = addEntry(entryFromCard(list[0], { lang: parsed.langCode }));
     e.alts = list.slice(0, 12).map(c => c.key); persist();
     added(e);
@@ -957,8 +975,10 @@ function scanOP(text, mode, img) {
     return;
   }
   /* códigos vizinhos (OP07-038 e OP07-036) se confundem: o mesmo código precisa aparecer duas vezes */
-  if (hit.code === lastKey || pend(hit.code) < 2) return;
-  forget(); lastKey = hit.code;
+  const now = Date.now();
+  if (repeatOf([hit.code], now)) return;
+  if (pend(hit.code) < needReads(2, now)) return;
+  forget(); lastKey = hit.code; markAdded([hit.code], now);
   const cands = O.candidates(OPX, hit.code), card = cands[0];
   const e = addEntry(opEntry(card));
   added(e);
@@ -1342,7 +1362,7 @@ function saveSheet() {
     toast("Alterações salvas.");
   } else {
     const e = addEntry(Object.assign({}, p, { card: c }));
-    if (camOpen) { session.unshift(e); cur = e; if (c) lastKey = isOP() ? c.base : c.key; }
+    if (camOpen) { session.unshift(e); cur = e; if (c) { lastKey = isOP() ? c.base : c.key; markAdded([lastKey], Date.now()); } }
     toast(`${nm(e)} adicionada (${p.qty}×).`);
     if (!camOpen) { $("q").value = ""; runSearch(); }
   }
