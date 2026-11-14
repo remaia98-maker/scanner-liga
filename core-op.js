@@ -23,7 +23,8 @@
     const byBase = new Map();
     for (const c of cards) if (c.base) { if (!byBase.has(c.base)) byBase.set(c.base, []); byBase.get(c.base).push(c); }
     const sigs = new Map(sets.map(s => [s.up, s]));
-    return { sets, cards, byBase, sigs, home: cat.home || {}, alts: cat.alts || {} };
+    const byKey = new Map(cards.map(c => [c.key, c]));
+    return { sets, cards, byBase, byKey, codes: new Set(byBase.keys()), sigs, home: cat.home || {}, alts: cat.alts || {} };
   }
 
   /* Ordem das versões de um código: normal da coleção de origem, variantes dela,
@@ -114,6 +115,15 @@
     return Math.max(0, n - have);
   }
 
+  /* Imagem oficial (site da Bandai). Arte alternativa da coleção de origem usa a "_p1" quando
+     a carta só tem uma; nos outros casos, a arte normal, que basta para reconhecer a carta. */
+  function imageUrl(idx, c) {
+    if (!c || !c.base) return "";
+    let id = c.base;
+    if (prefixOf(c.base) !== "P" && c.set.sig === idx.home[prefixOf(c.base)] && c.num !== c.base && !/-JP$/.test(c.num) && idx.alts[c.base] === 1) id += "_p1";
+    return "https://en.onepiece-cardgame.com/images/cardlist/card/" + id + ".png";
+  }
+
   /* Linha do CSV: a LigaOnePiece deixa vazios os campos em português */
   function rowOf(c) {
     return { ed: "", edEn: c.set.en, sig: c.set.sig, pt: "", en: c.name, rar: c.rar, cor: c.cor, num: c.num, tot: "" };
@@ -126,6 +136,6 @@
     return lines.join("\n") + "\n";
   }
 
-  const api = { HEADER, COLORS, fold, norm, baseOf, prefixOf, buildIndex, candidates, parseCode, label, search, missingAlts, rowOf, buildCSV };
+  const api = { HEADER, COLORS, imageUrl, fold, norm, baseOf, prefixOf, buildIndex, candidates, parseCode, label, search, missingAlts, rowOf, buildCSV };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.LigaOP = api;
 })(typeof window !== "undefined" ? window : globalThis);

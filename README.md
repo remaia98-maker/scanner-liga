@@ -1,14 +1,16 @@
 # Scanner Liga
 
-App web pessoal para ler cartas de Pokémon TCG pela câmera do celular e gerar um CSV no formato de importação de coleção da LigaPokemon.
+App web pessoal para ler cartas de Pokémon TCG e One Piece Card Game pela câmera do celular e gerar um CSV no formato de importação de coleção da LigaPokemon ou da LigaOnePiece. O seletor no topo da tela inicial escolhe o jogo; cada jogo tem o próprio lote.
 
 ## Arquivos
 
 | Arquivo | Para que serve |
 | --- | --- |
 | `index.html` | O app (tela, câmera, lote e exportação) |
-| `core.js` | Lógica de leitura do texto, busca no catálogo e geração do CSV |
-| `catalog.json` | Catálogo com 20.650 cartas de 169 coleções (TCGdex), com os nomes da Liga nas coleções do seu export |
+| `core.js` | Pokémon: leitura do texto, busca no catálogo e geração do CSV |
+| `core-op.js` | One Piece: leitura do código, versões da carta, busca, imagens e CSV da LigaOnePiece |
+| `catalog.json` | Catálogo de Pokémon (TCGdex, TCGplayer e os nomes da Liga nas coleções dos seus exports) |
+| `catalog-op.json` | Catálogo de One Piece: edições e cartas dos exports da LigaOnePiece (pasta `liga-op/`), completado com a base oficial da Bandai |
 | `manifest.webmanifest`, `icon-*.png` | Ícone e nome ao adicionar à Tela de Início |
 
 ## Publicar no GitHub Pages (grátis)
@@ -44,11 +46,31 @@ Na primeira leitura, o app baixa o leitor de texto (Tesseract, cerca de 10 MB). 
 - A **Sigla na Liga** pode ser corrigida na tela da carta. A correção fica salva para aquela coleção.
 - O lote fica salvo no próprio navegador. Baixe ou envie o CSV antes de limpar os dados do Safari.
 
+## One Piece
+
+Toque em **One Piece** no seletor do topo. O botão da câmera e os destaques ficam vermelhos para lembrar em qual Liga o lote vai entrar. O lote de One Piece é separado do de Pokémon, e o CSV sai no formato da LigaOnePiece.
+
+- **Câmera contínua:** igual à do Pokémon. Encaixe a faixa de baixo da carta no retângulo; o app lê o código impresso no canto inferior direito (`OP07-038`, `ST14-001`, `EB01-012`, `PRB01-001`, `P-045`). O código já diz a edição e o número. Para não confundir códigos vizinhos (038 e 036), o mesmo código precisa ser lido duas vezes. Os modos para reverse foil e texto claro também valem aqui.
+- **Versões:** pré-release, Release Event, parallel, manga, SP e promos têm o mesmo código impresso da carta normal. A câmera adiciona a versão normal; quando existem outras, o aviso de confirmação diz quantas são. Toque nele (ou em **Editar**) e escolha a sua em **Versão na Liga**.
+- **Cartas "conferir":** vieram da base oficial e ainda não estão nos seus exports. Nome e Card # seguem o padrão da Liga, mas vale conferir na primeira importação.
+- **Artes alternativas fora do catálogo:** quando a base oficial tem mais artes daquela carta do que o catálogo da Liga, a ficha avisa. Ajuste o **Card #** (o sufixo muda por edição, por exemplo `-PA` na OP-07 e `-AA` na OP-11) ou complete o export dessa edição.
+- **Japonesas:** a EB-04 da Liga é só japonesa (Card # com `-JP`); ao escolher essa versão, o idioma muda sozinho para Japonês.
+- **Miniaturas:** imagem oficial do site da Bandai. Nas parallels com uma única arte alternativa, aparece a arte alternativa; nas outras versões, a arte normal.
+
+### Dados da LigaOnePiece (pasta `liga-op/`)
+
+Funciona igual à pasta `liga/` do Pokémon: os CSVs exportados da LigaOnePiece têm prioridade e definem edição, sigla, nome, raridade, cor e Card # exatamente como a Liga escreve. Hoje a pasta tem:
+
+- `export-2026-11-08-promos-prerelease.csv`: todas as promos (PC-01) e todas as edições de pré-release e Release Event;
+- `export-2026-11-08-colecoes.csv`: até 50 cartas de cada edição normal e os starter decks.
+
+As cartas normais que faltam nas edições vêm da [base oficial](https://github.com/buhbbl/punk-records) (gerada do site da Bandai). Coleções novas que ainda não estão em nenhum export entram com a sigla no padrão da Liga (`OP-18`, `EB-05`, `ST30`) e todas as cartas marcadas para conferir; hoje é o caso da OP-18 (The Dominance of God). Para ter tudo conferido, exporte da Liga as edições completas e envie o arquivo para `liga-op/`. Depois rode **Actions → Atualizar catálogo → Run workflow**.
+
 ## Atualizar o catálogo (coleções novas)
 
 O `catalog.json` é gerado a partir do repositório público `tcgdex/cards-database`. O arquivo `.github/workflows/atualizar-catalogo.yml` faz isso sozinho:
 
-- **Toda segunda-feira** o GitHub baixa a base do TCGdex, gera o catálogo de novo e, se houver coleção nova, salva o arquivo. O site publicado se atualiza em seguida.
+- **Toda segunda-feira** o GitHub baixa a base do TCGdex e a base oficial de One Piece, gera os dois catálogos de novo e, se houver coleção nova, salva os arquivos. O site publicado se atualiza em seguida.
 - **Para rodar na hora** (por exemplo, no dia de um lançamento): no repositório, abra **Actions → Atualizar catálogo → Run workflow**.
 
 Se a pasta `.github` não subir junto com os outros arquivos (o upload pelo navegador às vezes ignora pastas que começam com ponto), crie o arquivo à mão: **Add file → Create new file**, digite o nome `.github/workflows/atualizar-catalogo.yml`, cole o conteúdo do arquivo e clique em **Commit changes**.

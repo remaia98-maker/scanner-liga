@@ -8,7 +8,7 @@ Uso: python tools/build_catalog_op.py <pasta english do punk-records> catalog-op
   as cartas normais que ainda não aparecem nos exports. Essas entram marcadas como
   "não confirmadas" no app.
 """
-import csv, glob, json, os, re, sys
+import csv, glob, html, json, os, re, sys
 from collections import Counter, defaultdict
 
 PUNK = sys.argv[1]
@@ -98,9 +98,24 @@ def pack_sig(pid):
     first = squash(label.split("-EB")[0]) if "-EB" in label else squash(label)
     if first in PACK_MAP:
         return PACK_MAP[first]
-    return home.get(first)
+    if first in home:
+        return home[first]
+    # Coleção nova, que ainda não está nos exports da Liga: usa o padrão de sigla da Liga
+    # (OP-18, EB-05, ST30). As cartas entram como "conferir na Liga" até virem num export.
+    m = re.fullmatch(r"(OP|EB|ST)(\d{2})", first)
+    if not m:
+        return None
+    sig = f"{m.group(1)}{m.group(2)}" if m.group(1) == "ST" and int(m.group(2)) >= 14 else f"{m.group(1)}-{m.group(2)}"
+    title = html.unescape((p.get("title_parts") or {}).get("title") or p["raw_title"])
+    if title.isupper():       # "THE DOMINANCE OF GOD" -> "The Dominance of God"
+        words = title.title().split()
+        title = " ".join(w.lower() if i and w in ("Of", "The", "In", "And", "To", "A") else w for i, w in enumerate(words))
+    new_sets[sig] = title
+    home[first] = sig
+    return sig
 
 
+new_sets = {}                     # coleções novas criadas a partir da base oficial
 have_base = defaultdict(set)      # sigla -> códigos-base presentes
 for (sig, num) in cards:
     b = base_code(num)
@@ -125,12 +140,14 @@ for cid, c in official.items():
     if c.get("category") == "Leader":
         rar = "L"
     if sig not in sets:
-        sets[sig] = packs[c["pack_id"]]["raw_title"]
+        sets[sig] = new_sets.get(sig) or html.unescape(packs[c["pack_id"]]["raw_title"])
         order.append(sig)
     cards[(sig, b)] = [sig, b, c["name"], rar, cor, 0]
     have_base[sig].add(b)
     added += 1
 print(f"Base oficial: {added} cartas acrescentadas; fora do mapa: {dict(skipped)}")
+if new_sets:
+    print("Coleções novas (sigla provisória, conferir na Liga):", new_sets)
 
 # Nome repetido na mesma edição: a Liga acrescenta o número, ex. "Boa Hancock (038)"
 by_set_name = defaultdict(list)
