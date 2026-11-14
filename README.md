@@ -31,7 +31,7 @@ Na primeira leitura, o app baixa o leitor de texto (Tesseract, cerca de 10 MB). 
 ## Como usar
 
 - **Início:** o app abre na busca (nome, número ou sigla, com filtros para japonesas, promos e antigas). Abaixo aparecem as últimas cartas adicionadas e um resumo do lote.
-- **Câmera contínua:** o botão redondo âmbar abre a câmera. Cada carta reconhecida entra no lote sozinha; a mesma carta só conta de novo depois de sair e voltar para a moldura. Use **Pausar**, **Editar** e **Desfazer** no painel de baixo, e **Buscar** quando a carta não for reconhecida.
+- **Câmera contínua:** o botão redondo âmbar abre a câmera. O app lê só a faixa de baixo da carta (sigla e número): aproxime até essa faixa ocupar o retângulo, mesmo que o resto da carta saia da tela. No Android, use o zoom (1,5× ou 2×) para não precisar chegar tão perto. Cada carta reconhecida entra no lote sozinha; a mesma carta só conta de novo depois de sair e voltar para o retângulo. Use **Pausar**, **Editar** e **Desfazer** no painel de baixo, e **Buscar** quando a carta não for reconhecida.
 - **Miniaturas:** imagem oficial da carta (TCGdex; TCGplayer nas japonesas que só ele tem). Sem internet ou sem imagem, aparece uma silhueta na cor do tipo.
 - **Lote:** toque numa carta para mudar versão, extras, qualidade, idioma ou quantidade, ou para removê-la.
 

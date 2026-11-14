@@ -122,9 +122,16 @@ details.raw textarea{width:100%;height:160px;margin-top:8px;font:12px/1.45 var(-
 /* ---------- câmera ---------- */
 .cam{position:fixed;inset:0;z-index:20;background:#000;overflow:hidden}
 .cam video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.cam .shade{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 76px);height:min(42vh,330px);aspect-ratio:63/88;transform:translateX(-50%);border-radius:11px;border:3px solid rgba(255,255,255,.85);box-shadow:0 0 0 9999px rgba(5,6,8,.5);transition:border-color .2s}
+/* A leitura usa só a faixa de baixo da carta (sigla e número). A carta pode passar da tela:
+   o que importa é a faixa ocupar o retângulo, para o texto ter pixels suficientes. */
+.cam .zone{position:absolute;left:0;right:0;top:calc(env(safe-area-inset-top,0px) + 64px);bottom:var(--ph,300px);display:flex;align-items:flex-end;justify-content:center;pointer-events:none}
+.cam .ghost{position:relative;flex:none;width:min(94vw,560px);aspect-ratio:63/88;border:2px dashed rgba(255,255,255,.3);border-bottom:0;border-radius:16px 16px 0 0}
+.cam .shade{position:absolute;left:-1px;right:-1px;bottom:0;aspect-ratio:63/13;border-radius:10px;border:3px solid rgba(255,255,255,.9);box-shadow:0 0 0 9999px rgba(5,6,8,.55);transition:border-color .2s}
 .cam .shade.hit{border-color:var(--accent)}
-.cam .shade i{position:absolute;left:3%;right:3%;bottom:1.5%;height:10%;border:1.5px dashed rgba(255,214,90,.8);border-radius:4px}
+.cam .shade span{position:absolute;left:0;right:0;top:-30px;text-align:center;font-size:12.5px;font-weight:700;color:#fff;text-shadow:0 1px 3px #000}
+.zoom{position:absolute;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 66px);display:flex;gap:4px;padding:3px;border-radius:999px;background:rgba(0,0,0,.55)}
+.zoom button{min-width:44px;height:34px;border-radius:999px;border:0;background:transparent;color:#fff;font:600 13px var(--f-mono)}
+.zoom button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
 .cam .ctop{position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);left:var(--gut);right:var(--gutr);display:flex;justify-content:space-between;align-items:center;gap:10px}
 .cbtn{flex:none;width:44px;height:44px;border-radius:50%;border:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;color:#fff}
 .cbtn svg{width:20px;height:20px}
@@ -132,7 +139,7 @@ details.raw textarea{width:100%;height:160px;margin-top:8px;font:12px/1.45 var(-
 .pill{min-height:36px;padding:0 14px;border-radius:999px;background:rgba(0,0,0,.6);display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:700;color:#fff;min-width:0}
 .pill .dot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--accent)}
 .pill .dot.off{background:var(--muted)}
-.chipst{position:absolute;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 76px + min(42vh,330px) + 12px);max-width:calc(100% - 32px);min-height:36px;padding:6px 14px;border-radius:999px;background:rgba(0,0,0,.7);color:#fff;font-weight:700;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:0}
+.chipst{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(var(--ph,300px) + min(94vw,560px) * 13 / 63 + 44px);max-width:calc(100% - 32px);min-height:36px;padding:6px 14px;border-radius:999px;background:rgba(0,0,0,.7);color:#fff;font-weight:700;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:0}
 .chipst.ok{background:var(--accent);color:var(--accent-ink)}
 .chipst.warn{background:var(--flag-bg);color:#FFD9CC}
 .panel{position:absolute;left:0;right:0;bottom:0;padding:14px 0 calc(env(safe-area-inset-bottom,0px) + 16px);background:#141518;border-radius:22px 22px 0 0;display:flex;flex-direction:column;gap:14px}
@@ -279,14 +286,15 @@ details.more summary{cursor:pointer;color:var(--accent);font-weight:700;font-siz
 <!-- ============ CÂMERA CONTÍNUA ============ -->
 <section class="cam" id="cam" aria-label="Câmera" hidden>
   <video id="video" playsinline muted autoplay></video>
-  <div class="shade" id="frame" aria-hidden="true"><i></i></div>
+  <div class="zone" aria-hidden="true"><div class="ghost"><div class="shade" id="frame"><span>Faixa de baixo da carta aqui</span></div></div></div>
+  <div class="zoom" id="zoom" role="group" aria-label="Zoom da câmera" hidden></div>
   <div class="ctop">
     <button type="button" class="cbtn" id="camClose" aria-label="Fechar câmera"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     <span class="pill" role="status"><span class="dot off" id="camDot"></span><span id="camPillTxt">Abrindo câmera…</span></span>
     <button type="button" class="cbtn" id="torch" aria-label="Lanterna" aria-pressed="false" style="visibility:hidden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3L5 14h6l-1 7 8-11h-6z"/></svg></button>
   </div>
   <button type="button" class="chipst" id="camChip" hidden></button>
-  <div class="panel">
+  <div class="panel" id="camPanel">
     <div class="last" id="camLast" hidden></div>
     <div class="film" id="camFilm"></div>
     <div class="ctrls">
@@ -537,7 +545,7 @@ async function readNumber(w, card) {
 }
 
 /* ---------- câmera contínua ---------- */
-let stream = null, camOpen = false, paused = false, session = [], lastKey = null, pendKey = null, scanning = false;
+let stream = null, camOpen = false, paused = false, session = [], lastKey = null, pendKey = null, scanning = false, misses = 0, invert = false;
 const PAUSE_ICON = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
 const PLAY_ICON = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
 function pill(text, live) { $("camPillTxt").textContent = text; $("camDot").classList.toggle("off", !live); }
@@ -560,19 +568,43 @@ async function openCamera() {
   getWorker().then(() => { if (camOpen) setPaused(paused); })
     .catch(() => { if (camOpen) { pill("Leitor indisponível", false); camChip("O leitor de texto não carregou. Toque para buscar.", "warn", () => goSearch()); } });
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1440 } }, audio: false });
+    /* a maior resolução que o celular oferecer: mais pixels no número da carta */
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 3840 }, height: { ideal: 2160 } }, audio: false });
     if (!camOpen) { stream.getTracks().forEach(t => t.stop()); return; }
     $("video").srcObject = stream;
     await $("video").play().catch(() => {});
     const track = stream.getVideoTracks()[0];
     const caps = track && track.getCapabilities ? track.getCapabilities() : {};
     $("torch").style.visibility = caps.torch ? "visible" : "hidden";
+    if (caps.focusMode && caps.focusMode.includes("continuous")) track.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
+    setupZoom(track, caps);
+    fitZone();
     if (!worker) pill("Preparando o leitor…", false);
     scanLoop();
   } catch (e) {
     closeCamera();
     showStatus("Não consegui abrir a câmera. Confira a permissão do navegador para este site.");
   }
+}
+/* o retângulo fica logo acima do painel de baixo */
+function fitZone() { $("cam").style.setProperty("--ph", ($("camPanel").offsetHeight + 16) + "px"); }
+window.addEventListener("resize", () => { if (camOpen) fitZone(); });
+/* zoom da câmera (Android): deixa o celular na distância em que ainda foca, com a faixa grande na tela */
+function setupZoom(track, caps) {
+  const z = $("zoom");
+  if (!caps.zoom || !(caps.zoom.max > 1)) { z.hidden = true; return; }
+  const steps = [1, 1.5, 2, 3].filter(v => v >= (caps.zoom.min || 1) && v <= caps.zoom.max);
+  const saved = load("ligaScanner.zoom.v1", 1.5);
+  const start = steps.includes(saved) ? saved : steps[Math.min(1, steps.length - 1)];
+  z.innerHTML = steps.map(v => `<button type="button" data-z="${v}" aria-pressed="${v === start}">${v}×</button>`).join("");
+  z.hidden = false;
+  const apply = v => track.applyConstraints({ advanced: [{ zoom: v }] }).catch(() => {});
+  apply(start);
+  z.onclick = e => {
+    const b = e.target.closest("[data-z]"); if (!b) return;
+    const v = +b.dataset.z; apply(v); save("ligaScanner.zoom.v1", v);
+    z.querySelectorAll("[data-z]").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+  };
 }
 function closeCamera() {
   camOpen = false;
@@ -596,17 +628,30 @@ $("torch").onclick = async () => {
   try { await t.applyConstraints({ advanced: [{ torch: on }] }); $("torch").setAttribute("aria-pressed", String(on)); } catch (e) {}
 };
 
-/* recorta a área da moldura do vídeo, levando em conta o object-fit: cover */
-function grabCard() {
+/* Recorta só a faixa do vídeo, na resolução original (levando em conta o object-fit: cover),
+   e prepara para o OCR: tons de cinza, contraste esticado e altura de ~140 px. */
+function grabBand(inv) {
   const v = $("video"), box = $("cam").getBoundingClientRect(), fr = $("frame").getBoundingClientRect();
   const vw = v.videoWidth, vh = v.videoHeight;
   if (!vw) return null;
   const s = Math.max(box.width / vw, box.height / vh);
   const ox = (box.width - vw * s) / 2, oy = (box.height - vh * s) / 2;
-  const sx = (fr.left - box.left - ox) / s, sy = (fr.top - box.top - oy) / s, sw = fr.width / s, sh = fr.height / s;
-  const W = 900, H = Math.round(W * 88 / 63);
-  const c = document.createElement("canvas"); c.width = W; c.height = H;
-  c.getContext("2d").drawImage(v, sx, sy, sw, sh, 0, 0, W, H);
+  const sx = Math.max(0, (fr.left - box.left - ox) / s), sy = Math.max(0, (fr.top - box.top - oy) / s);
+  const sw = Math.min(vw - sx, fr.width / s), sh = Math.min(vh - sy, fr.height / s);
+  const k = Math.min(140 / sh, 1400 / sw);
+  const c = document.createElement("canvas"); c.width = Math.round(sw * k); c.height = Math.round(sh * k);
+  const g = c.getContext("2d", { willReadFrequently: true });
+  g.imageSmoothingQuality = "high";
+  g.drawImage(v, sx, sy, sw, sh, 0, 0, c.width, c.height);
+  const img = g.getImageData(0, 0, c.width, c.height), d = img.data, hist = new Uint32Array(256);
+  for (let i = 0; i < d.length; i += 4) { const y = (d[i] * 299 + d[i + 1] * 587 + d[i + 2] * 114) / 1000 | 0; d[i] = y; hist[y]++; }
+  const n = d.length / 4; let lo = 0, hi = 255, acc = 0;
+  for (; lo < 255; lo++) { acc += hist[lo]; if (acc > n * 0.02) break; }
+  acc = 0; for (; hi > 0; hi--) { acc += hist[hi]; if (acc > n * 0.02) break; }
+  if (hi - lo < 50) return "vazio";                 /* sem contraste: nada na faixa, pula o OCR */
+  const m = 255 / (hi - lo);
+  for (let i = 0; i < d.length; i += 4) { let y = Math.min(255, Math.max(0, (d[i] - lo) * m)); if (inv) y = 255 - y; d[i] = d[i + 1] = d[i + 2] = y; }
+  g.putImageData(img, 0, 0);
   return c;
 }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -614,39 +659,52 @@ async function scanLoop() {
   if (scanning) return;
   scanning = true;
   try {
+    await worker_ready_for_camera();
     while (camOpen) {
       if (!paused && !sheetOpen() && worker && $("video").videoWidth) {
         try { await scanOnce(); } catch (e) { /* um quadro ruim não interrompe a leitura */ }
-      }
-      await sleep(200);
+        await sleep(60);
+      } else await sleep(200);
     }
   } finally { scanning = false; }
 }
-/* Lê um quadro. A carta só entra quando o mesmo resultado aparece em duas leituras seguidas,
-   e não entra de novo enquanto continuar na moldura: tire e coloque de volta para contar outra. */
+/* deixa o leitor pronto para a faixa: só letras, números e barra */
+async function worker_ready_for_camera() {
+  try { const w = await getWorker(); await w.setParameters({ tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/ ", tessedit_pageseg_mode: "6" }); } catch (e) {}
+}
+/* Lê um quadro. Uma leitura com sigla, número e total coerentes já vale; nas outras, o mesmo resultado
+   precisa aparecer duas vezes. A carta não entra de novo enquanto continuar na faixa. */
 async function scanOnce() {
-  const card = grabCard(); if (!card) return;
-  const parsed = await readNumber(worker, card);
+  const img = grabBand(invert); if (!img) return;
+  if (img === "vazio") { if (++misses >= 3) lastKey = pendKey = null; return; }
+  const text = (await worker.recognize(img)).data.text;
   if (!camOpen || paused || sheetOpen()) return;
-  if (!parsed.num) { lastKey = pendKey = null; return; }
-  const topText = parsed.sig ? "" : await ocrName(worker, card);
-  if (!camOpen || paused || sheetOpen()) return;
-  const r = C.resolve(IDX, parsed, topText);
+  const parsed = C.parseBottom(text, IDX.sigs);
+  if (!parsed.num) {
+    invert = !invert;                                /* tenta a outra polaridade (texto claro em fundo escuro) */
+    if (++misses >= 4) lastKey = pendKey = null;
+    return;
+  }
+  misses = 0;
+  const r = C.resolve(IDX, parsed, "");
   const code = `${parsed.sig || ""} ${parsed.num}${parsed.tot ? "/" + parsed.tot : ""}`.trim();
   if (r.auto) {
     const key = r.auto.key;
     if (key === lastKey) return;
-    if (key !== pendKey) { pendKey = key; return; }
+    const tot = parsed.tot ? parseInt(String(parsed.tot).replace(/\D/g, ""), 10) : 0;
+    const strong = parsed.sig && tot && r.auto.set.official === tot;
+    if (!strong && key !== pendKey) { pendKey = key; return; }
     lastKey = key; pendKey = null;
     const e = addEntry(entryFromCard(r.auto, { lang: parsed.langCode }));
     session.unshift(e);
     $("frame").classList.add("hit"); setTimeout(() => $("frame").classList.remove("hit"), 600);
     if (navigator.vibrate) navigator.vibrate(25);
     camChip(`✓ ${e.pt} · ${e.sig} ${e.num}`, "ok");
-    renderCamPanel(); setPaused(false);
+    renderCamPanel(); setPaused(false); fitZone();
   } else if (r.ranked.length) {
     const key = "amb:" + code;
     if (key === lastKey) return;
+    if (key !== pendKey) { pendKey = key; return; }
     lastKey = key; pendKey = null;
     const list = r.ranked.map(x => x.card);
     camChip(`${code}: ${list.length} cartas possíveis. Toque para escolher`, "", () => openSheet({ mode: "choose", list, read: parsed }));
@@ -654,6 +712,7 @@ async function scanOnce() {
   } else {
     const key = "nf:" + code;
     if (key === lastKey) return;
+    if (key !== pendKey) { pendKey = key; return; }
     lastKey = key; pendKey = null;
     camChip(`Não achei ${code}. Toque para buscar`, "warn", () => goSearch(parsed.num));
   }
@@ -674,7 +733,7 @@ function renderCamPanel() {
   }
   $("camFilm").innerHTML = session.length
     ? session.slice(0, 14).map(e => thumb(e.img, e.cor, "s")).join("")
-    : '<span class="hint">Encaixe a carta na moldura. Cada carta lida entra no lote sozinha.</span>';
+    : '<span class="hint">Aproxime até a faixa de baixo da carta ocupar o retângulo. Cada carta lida entra no lote sozinha.</span>';
 }
 
 /* ---------- foto da galeria: lê uma vez e abre a ficha ---------- */
