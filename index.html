@@ -126,10 +126,12 @@ details.raw textarea{width:100%;height:160px;margin-top:8px;font:12px/1.45 var(-
    o que importa é a faixa ocupar o retângulo, para o texto ter pixels suficientes. */
 .cam .zone{position:absolute;left:0;right:0;top:calc(env(safe-area-inset-top,0px) + 64px);bottom:var(--ph,300px);display:flex;align-items:flex-end;justify-content:center;pointer-events:none}
 .cam .ghost{position:relative;flex:none;width:min(94vw,560px);aspect-ratio:63/88;border:2px dashed rgba(255,255,255,.3);border-bottom:0;border-radius:16px 16px 0 0}
-.cam .shade{position:absolute;left:-1px;right:-1px;bottom:0;aspect-ratio:63/13;border-radius:10px;border:3px solid rgba(255,255,255,.9);box-shadow:0 0 0 9999px rgba(5,6,8,.55);transition:border-color .2s}
+.cam .shade{position:absolute;left:-1px;right:-1px;bottom:0;aspect-ratio:63/18;border-radius:10px;border:3px solid rgba(255,255,255,.9);box-shadow:0 0 0 9999px rgba(5,6,8,.55);transition:border-color .2s}
 .cam .shade.hit{border-color:var(--accent)}
 .cam .shade span{position:absolute;left:0;right:0;top:-30px;text-align:center;font-size:12.5px;font-weight:700;color:#fff;text-shadow:0 1px 3px #000}
 .zoom{position:absolute;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 66px);display:flex;gap:4px;padding:3px;border-radius:999px;background:rgba(0,0,0,.55)}
+.camdebug{position:absolute;left:var(--gut);right:var(--gutr);top:calc(env(safe-area-inset-top,0px) + 108px);z-index:2;padding:8px;border-radius:10px;background:rgba(0,0,0,.8);font:12px/1.35 var(--f-mono);color:#fff;display:flex;flex-direction:column;gap:6px}
+.camdebug canvas{width:100%;height:auto;border-radius:4px;background:#fff}
 .zoom button{min-width:44px;height:34px;border-radius:999px;border:0;background:transparent;color:#fff;font:600 13px var(--f-mono)}
 .zoom button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
 .cam .ctop{position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);left:var(--gut);right:var(--gutr);display:flex;justify-content:space-between;align-items:center;gap:10px}
@@ -139,7 +141,7 @@ details.raw textarea{width:100%;height:160px;margin-top:8px;font:12px/1.45 var(-
 .pill{min-height:36px;padding:0 14px;border-radius:999px;background:rgba(0,0,0,.6);display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:700;color:#fff;min-width:0}
 .pill .dot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--accent)}
 .pill .dot.off{background:var(--muted)}
-.chipst{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(var(--ph,300px) + min(94vw,560px) * 13 / 63 + 44px);max-width:calc(100% - 32px);min-height:36px;padding:6px 14px;border-radius:999px;background:rgba(0,0,0,.7);color:#fff;font-weight:700;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:0}
+.chipst{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(var(--ph,300px) + min(94vw,560px) * 18 / 63 + 44px);max-width:calc(100% - 32px);min-height:36px;padding:6px 14px;border-radius:999px;background:rgba(0,0,0,.7);color:#fff;font-weight:700;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:0}
 .chipst.ok{background:var(--accent);color:var(--accent-ink)}
 .chipst.warn{background:var(--flag-bg);color:#FFD9CC}
 .panel{position:absolute;left:0;right:0;bottom:0;padding:14px 0 calc(env(safe-area-inset-bottom,0px) + 16px);background:#141518;border-radius:22px 22px 0 0;display:flex;flex-direction:column;gap:14px}
@@ -290,10 +292,11 @@ details.more summary{cursor:pointer;color:var(--accent);font-weight:700;font-siz
   <div class="zoom" id="zoom" role="group" aria-label="Zoom da câmera" hidden></div>
   <div class="ctop">
     <button type="button" class="cbtn" id="camClose" aria-label="Fechar câmera"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-    <span class="pill" role="status"><span class="dot off" id="camDot"></span><span id="camPillTxt">Abrindo câmera…</span></span>
+    <span class="pill" role="status" id="camPill" title="Toque para ver o que o leitor vê"><span class="dot off" id="camDot"></span><span id="camPillTxt">Abrindo câmera…</span></span>
     <button type="button" class="cbtn" id="torch" aria-label="Lanterna" aria-pressed="false" style="visibility:hidden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3L5 14h6l-1 7 8-11h-6z"/></svg></button>
   </div>
   <button type="button" class="chipst" id="camChip" hidden></button>
+  <div class="camdebug" id="camDebug" hidden><span>O que o leitor vê (toque no aviso do topo para esconder)</span><div id="camDebugImg"></div><span id="camDebugTxt"></span></div>
   <div class="panel" id="camPanel">
     <div class="last" id="camLast" hidden></div>
     <div class="film" id="camFilm"></div>
@@ -569,7 +572,7 @@ async function openCamera() {
     .catch(() => { if (camOpen) { pill("Leitor indisponível", false); camChip("O leitor de texto não carregou. Toque para buscar.", "warn", () => goSearch()); } });
   try {
     /* a maior resolução que o celular oferecer: mais pixels no número da carta */
-    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 3840 }, height: { ideal: 2160 } }, audio: false });
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 2560 }, height: { ideal: 1440 } }, audio: false });
     if (!camOpen) { stream.getTracks().forEach(t => t.stop()); return; }
     $("video").srcObject = stream;
     await $("video").play().catch(() => {});
@@ -622,6 +625,9 @@ function goSearch(prefill) {
 }
 $("camSearch").onclick = () => goSearch();
 $("camPause").onclick = () => setPaused(!paused);
+/* tocar no aviso do topo mostra o recorte que vai para o leitor e o texto lido (para diagnosticar) */
+let debug = false;
+$("camPill").onclick = () => { debug = !debug; $("camDebug").hidden = !debug; };
 $("torch").onclick = async () => {
   const t = stream && stream.getVideoTracks()[0]; if (!t) return;
   const on = $("torch").getAttribute("aria-pressed") !== "true";
@@ -629,7 +635,8 @@ $("torch").onclick = async () => {
 };
 
 /* Recorta só a faixa do vídeo, na resolução original (levando em conta o object-fit: cover),
-   e prepara para o OCR: tons de cinza, contraste esticado e altura de ~140 px. */
+   e prepara para o OCR: tons de cinza, contraste esticado e altura de ~440 px
+   (o texto do código precisa de uns 25-30 px de altura para o leitor acertar). */
 function grabBand(inv) {
   const v = $("video"), box = $("cam").getBoundingClientRect(), fr = $("frame").getBoundingClientRect();
   const vw = v.videoWidth, vh = v.videoHeight;
@@ -638,7 +645,7 @@ function grabBand(inv) {
   const ox = (box.width - vw * s) / 2, oy = (box.height - vh * s) / 2;
   const sx = Math.max(0, (fr.left - box.left - ox) / s), sy = Math.max(0, (fr.top - box.top - oy) / s);
   const sw = Math.min(vw - sx, fr.width / s), sh = Math.min(vh - sy, fr.height / s);
-  const k = Math.min(140 / sh, 1400 / sw);
+  const k = Math.min(440 / sh, 2200 / sw);
   const c = document.createElement("canvas"); c.width = Math.round(sw * k); c.height = Math.round(sh * k);
   const g = c.getContext("2d", { willReadFrequently: true });
   g.imageSmoothingQuality = "high";
@@ -648,7 +655,7 @@ function grabBand(inv) {
   const n = d.length / 4; let lo = 0, hi = 255, acc = 0;
   for (; lo < 255; lo++) { acc += hist[lo]; if (acc > n * 0.02) break; }
   acc = 0; for (; hi > 0; hi--) { acc += hist[hi]; if (acc > n * 0.02) break; }
-  if (hi - lo < 50) return "vazio";                 /* sem contraste: nada na faixa, pula o OCR */
+  if (hi - lo < 30) return "vazio";                 /* sem contraste: nada na faixa, pula o OCR */
   const m = 255 / (hi - lo);
   for (let i = 0; i < d.length; i += 4) { let y = Math.min(255, Math.max(0, (d[i] - lo) * m)); if (inv) y = 255 - y; d[i] = d[i + 1] = d[i + 2] = y; }
   g.putImageData(img, 0, 0);
@@ -676,10 +683,14 @@ async function worker_ready_for_camera() {
    precisa aparecer duas vezes. A carta não entra de novo enquanto continuar na faixa. */
 async function scanOnce() {
   const img = grabBand(invert); if (!img) return;
-  if (img === "vazio") { if (++misses >= 3) lastKey = pendKey = null; return; }
+  if (img === "vazio") { if (++misses >= 3) lastKey = pendKey = null; if (debug) $("camDebugTxt").textContent = "Faixa vazia ou sem contraste"; return; }
   const text = (await worker.recognize(img)).data.text;
   if (!camOpen || paused || sheetOpen()) return;
   const parsed = C.parseBottom(text, IDX.sigs);
+  if (debug) {
+    img.style.maxHeight = "90px"; $("camDebugImg").replaceChildren(img);
+    $("camDebugTxt").textContent = `Lido: ${text.trim().replace(/\s+/g, " ") || "(nada)"} → ${parsed.num ? `${parsed.sig || "?"} ${parsed.num}${parsed.tot ? "/" + parsed.tot : ""}` : "sem número"}`;
+  }
   if (!parsed.num) {
     invert = !invert;                                /* tenta a outra polaridade (texto claro em fundo escuro) */
     if (++misses >= 4) lastKey = pendKey = null;

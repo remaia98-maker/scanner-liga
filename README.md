@@ -39,7 +39,7 @@ Na primeira leitura, o app baixa o leitor de texto (Tesseract, cerca de 10 MB). 
 - **Cartas antigas:** o app lê o número e o total (por exemplo `4/102`) e o nome no topo. Com isso descobre a coleção. Se houver mais de uma possibilidade, mostra uma lista para você escolher.
 - **Japonesas modernas (Black & White em diante):** o app lê o código impresso, por exemplo `SV2a 063/165`, e acha a carta nas 95 coleções japonesas do catálogo. O nome em inglês é montado a partir do nome do Pokémon; quando não há tradução (alguns treinadores), a tela da carta pede o nome em inglês, ou exporta em japonês.
 - **Japonesas antigas e cartas fora do catálogo:** use **Adicionar manualmente**.
-- Toque em **Ver o que o leitor viu** para conferir os recortes e o texto lido quando algo der errado.
+- Na câmera, toque no aviso do topo (o que mostra o status da leitura) para ver o recorte que vai para o leitor e o texto que ele leu. Toque de novo para esconder. Na leitura por foto da galeria, use **Ver o que o leitor viu**.
 - A **Sigla na Liga** pode ser corrigida na tela da carta. A correção fica salva para aquela coleção.
 - O lote fica salvo no próprio navegador. Baixe ou envie o CSV antes de limpar os dados do Safari.
 
