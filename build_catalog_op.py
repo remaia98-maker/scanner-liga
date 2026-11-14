@@ -1,6 +1,6 @@
 """Gera o catalog-op.json (One Piece) do Scanner Liga.
 
-Uso: python tools/build_catalog_op.py <pasta english do punk-records> catalog-op.json [pasta liga-op]
+Uso: python tools/build_catalog_op.py <pasta english do punk-records> catalog-op.json [pasta liga-op] [tcgplayer-op.json]
 
 - Os CSVs exportados da LigaOnePiece (pasta liga-op/) são a fonte principal: edição,
   sigla, nome, raridade, cor e "Card #" saem exatamente como a Liga escreve.
@@ -14,6 +14,7 @@ from collections import Counter, defaultdict
 PUNK = sys.argv[1]
 OUT = sys.argv[2]
 LIGA_DIR = sys.argv[3] if len(sys.argv) > 3 else "liga-op"
+TCGP = sys.argv[4] if len(sys.argv) > 4 else None
 
 RARITY = {"Common": "C", "Uncommon": "U", "Rare": "R", "SuperRare": "SR", "Leader": "L",
           "SecretRare": "SCR", "Special": "SP", "Promo": "P", "TreasureRare": "TR"}
@@ -161,11 +162,47 @@ for (sig, name), rows in by_set_name.items():
                 row[2] = f"{name} ({row[1][-3:]})"
 
 # ---------------------------------------------------------------------------
-# 3. Saída compacta
+# 3. Miniaturas: código do produto no TCGplayer (a imagem da Bandai não abre fora do site deles).
+#    Cada carta pega o produto com o mesmo código impresso cujas etiquetas entre parênteses
+#    (Parallel, Manga, SP, Pre-Release...) mais se parecem com as do nome da Liga.
+TAG_RE = re.compile(r"\(([^)]*)\)")
+SUFFIX_TAGS = {"PA": "parallel", "AA": "parallel", "MA": "manga", "SP": "sp", "PR": "pre-release"}
+
+
+def tags_of(name, num=""):
+    t = {x.strip().lower() for x in TAG_RE.findall(name or "") if x.strip() and not x.strip().isdigit()}
+    suf = num[len(base_code(num) or num):].strip("-")
+    for part in suf.split("-"):
+        if part in SUFFIX_TAGS:
+            t.add(SUFFIX_TAGS[part])
+    return {w for x in t for w in re.split(r"[\s/]+", x) if w}
+
+
+pids = {}
+if TCGP and os.path.exists(TCGP):
+    by_num = defaultdict(list)
+    for gname, num, pname, pid in json.load(open(TCGP, encoding="utf-8")):
+        by_num[num].append((tags_of(pname), pid))
+    hits = 0
+    for key, row in cards.items():
+        b = base_code(row[1])
+        cands = by_num.get(b) or []
+        if not cands:
+            continue
+        want = tags_of(row[2], row[1])
+        best = max(cands, key=lambda c: (len(want & c[0]) * 2 - len(c[0] - want), -c[1]))
+        pids[key] = best[1]
+        hits += 1
+    print(f"TCGplayer: miniatura para {hits} de {len(cards)} cartas")
+else:
+    print("TCGplayer: sem o arquivo do TCGCSV, as cartas ficam sem código de produto")
+
+# ---------------------------------------------------------------------------
+# 4. Saída compacta
 idx = {s: i for i, s in enumerate(order)}
 count = Counter(row[0] for row in cards.values())
 out_sets = [[s, sets[s], kind(s, sets[s]), count[s]] for s in order]
-out_cards = sorted(([idx[r[0]], r[1], r[2], r[3], r[4], r[5]] for r in cards.values()), key=lambda r: (r[0], r[1]))
+out_cards = sorted(([idx[r[0]], r[1], r[2], r[3], r[4], r[5]] + ([pids[k]] if k in pids else []) for k, r in cards.items()), key=lambda r: (r[0], r[1]))
 out = {"game": "op", "sets": out_sets, "home": home, "cards": out_cards,
        "alts": {k: v for k, v in alts.items()}}
 with open(OUT, "w", encoding="utf-8") as fh:

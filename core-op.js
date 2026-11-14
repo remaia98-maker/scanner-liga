@@ -18,7 +18,7 @@
     const sets = cat.sets.map(s => ({ sig: s[0], en: s[1], kind: s[2], total: s[3], up: s[0].toUpperCase() }));
     const cards = cat.cards.map(c => {
       const set = sets[c[0]], base = baseOf(c[1]);
-      return { set, num: c[1], base, name: c[2], rar: c[3], cor: c[4], ok: !!c[5], nn: norm(c[2]), key: set.sig + "|" + c[1] };
+      return { set, num: c[1], base, name: c[2], rar: c[3], cor: c[4], ok: !!c[5], pid: c[6] || 0, nn: norm(c[2]), key: set.sig + "|" + c[1] };
     });
     const byBase = new Map();
     for (const c of cards) if (c.base) { if (!byBase.has(c.base)) byBase.set(c.base, []); byBase.get(c.base).push(c); }
@@ -115,13 +115,19 @@
     return Math.max(0, n - have);
   }
 
-  /* Imagem oficial (site da Bandai). Arte alternativa da coleção de origem usa a "_p1" quando
-     a carta só tem uma; nos outros casos, a arte normal, que basta para reconhecer a carta. */
+  /* Endereços da imagem, em ordem de tentativa, separados por "|": a CDN do TCGplayer (código do
+     produto, vindo do TCGCSV na atualização semanal) e o site da Bandai, que costuma recusar
+     imagens abertas fora do site deles. A tela passa para o próximo quando um falha. */
   function imageUrl(idx, c) {
-    if (!c || !c.base) return "";
-    let id = c.base;
-    if (prefixOf(c.base) !== "P" && c.set.sig === idx.home[prefixOf(c.base)] && c.num !== c.base && !/-JP$/.test(c.num) && idx.alts[c.base] === 1) id += "_p1";
-    return "https://en.onepiece-cardgame.com/images/cardlist/card/" + id + ".png";
+    if (!c) return "";
+    const out = [];
+    if (c.pid) out.push("https://tcgplayer-cdn.tcgplayer.com/product/" + c.pid + "_400w.jpg");
+    if (c.base) {
+      let id = c.base;
+      if (prefixOf(c.base) !== "P" && c.set.sig === idx.home[prefixOf(c.base)] && c.num !== c.base && !/-JP$/.test(c.num) && idx.alts[c.base] === 1) id += "_p1";
+      out.push("https://en.onepiece-cardgame.com/images/cardlist/card/" + id + ".png");
+    }
+    return out.join("|");
   }
 
   /* Linha do CSV: a LigaOnePiece deixa vazios os campos em português */

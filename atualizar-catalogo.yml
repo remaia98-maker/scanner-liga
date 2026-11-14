@@ -29,10 +29,13 @@ jobs:
       - name: Baixar a base oficial de One Piece (punk-records, gerada do site da Bandai)
         run: git clone --depth 1 https://github.com/buhbbl/punk-records /tmp/punk-records || echo "base de One Piece indisponivel"
 
+      - name: Baixar os códigos das cartas de One Piece no TCGplayer (miniaturas, via tcgcsv.com)
+        run: python3 tools/fetch_tcgplayer_op.py /tmp/tcgplayer-op.json || echo "TCGCSV indisponivel, seguindo sem"
+
       - name: Gerar catalog-op.json (One Piece)
         run: |
           if [ -d /tmp/punk-records/english ]; then
-            python3 tools/build_catalog_op.py /tmp/punk-records/english catalog-op.json liga-op
+            python3 tools/build_catalog_op.py /tmp/punk-records/english catalog-op.json liga-op /tmp/tcgplayer-op.json
           else
             echo "Sem a base oficial: o catalog-op.json fica como estava."
           fi

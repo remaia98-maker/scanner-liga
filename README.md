@@ -33,7 +33,15 @@ Na primeira leitura, o app baixa o leitor de texto (Tesseract, cerca de 10 MB). 
 ## Como usar
 
 - **Início:** o app abre na busca (nome, número ou sigla, com filtros para japonesas, promos e antigas). Abaixo aparecem as últimas cartas adicionadas e um resumo do lote.
-- **Câmera contínua:** o botão redondo âmbar abre a câmera. O app lê só a faixa de baixo da carta (sigla e número): aproxime até essa faixa ocupar o retângulo, mesmo que o resto da carta saia da tela. No Android, use o zoom (1,5× ou 2×) para não precisar chegar tão perto. Cada carta reconhecida entra no lote sozinha; a mesma carta só conta de novo depois de sair e voltar para o retângulo. Use **Pausar**, **Editar** e **Desfazer** no painel de baixo, e **Buscar** quando a carta não for reconhecida.
+- **Câmera contínua:** o botão redondo âmbar abre a câmera. O app lê só a faixa de baixo da carta (sigla e número): aproxime até essa faixa ocupar o retângulo, mesmo que o resto da carta saia da tela. No Android, use o zoom (1,5× ou 2×) para não precisar chegar tão perto. Cada carta reconhecida entra no lote sozinha, sem confirmação; a mesma carta só conta de novo depois de sair e voltar para o retângulo. Use **Pausar** para parar a leitura e **Buscar** quando a carta não for reconhecida.
+- **Painel da carta lida (como no ManaBox):** embaixo aparece a última carta lida e uma barra de ajustes. Tudo o que você muda ali é salvo na hora:
+  - **Normal / Foil / Reverse:** toque para alternar o acabamento (em One Piece, Normal ou Foil).
+  - **Sigla e número:** toque para ver todas as versões da carta (outras coleções, Master Ball, parallel, pré-release, promos) com as imagens, e escolher a sua. Há um campo para filtrar por coleção ou número.
+  - **Idioma:** toque para escolher. O idioma escolhido passa a valer para as próximas cartas (menos o das japonesas).
+  - **− e +:** quantidade. No 1, o − tira a carta do lote.
+  - Toque na ficha (nome da carta) para ver todos os detalhes: qualidade, extras, sigla e remover.
+  - As miniaturas abaixo da barra são as cartas desta sessão; toque numa para ajustá-la.
+- **Número ambíguo:** quando o mesmo número existe em mais de uma coleção e a sigla não foi lida, o app adiciona a mais provável e avisa. As outras candidatas aparecem primeiro na escolha de versão.
 - **Reverse foil e cartas com brilho:** quando a leitura normal não acha o número, o app alterna sozinho entre outros modos a cada quadro: binarização local, que separa o texto do brilho holográfico, e imagem invertida, para texto claro em fundo escuro, como a sigla das promos MEP. Ele junta o que cada modo leu: a sigla de um quadro completa o número lido em outro. Essas cartas podem levar 1 ou 2 segundos a mais; mantenha a carta parada no retângulo.
 - **Miniaturas:** imagem oficial da carta (TCGdex; TCGplayer nas japonesas que só ele tem). Sem internet ou sem imagem, aparece uma silhueta na cor do tipo.
 - **Lote:** toque numa carta para mudar versão, extras, qualidade, idioma ou quantidade, ou para removê-la.
@@ -51,11 +59,11 @@ Na primeira leitura, o app baixa o leitor de texto (Tesseract, cerca de 10 MB). 
 Toque em **One Piece** no seletor do topo. O botão da câmera e os destaques ficam vermelhos para lembrar em qual Liga o lote vai entrar. O lote de One Piece é separado do de Pokémon, e o CSV sai no formato da LigaOnePiece.
 
 - **Câmera contínua:** igual à do Pokémon. Encaixe a faixa de baixo da carta no retângulo; o app lê o código impresso no canto inferior direito (`OP07-038`, `ST14-001`, `EB01-012`, `PRB01-001`, `P-045`). O código já diz a edição e o número. Para não confundir códigos vizinhos (038 e 036), o mesmo código precisa ser lido duas vezes. Os modos para reverse foil e texto claro também valem aqui.
-- **Versões:** pré-release, Release Event, parallel, manga, SP e promos têm o mesmo código impresso da carta normal. A câmera adiciona a versão normal; quando existem outras, o aviso de confirmação diz quantas são. Toque nele (ou em **Editar**) e escolha a sua em **Versão na Liga**.
+- **Versões:** pré-release, Release Event, parallel, manga, SP e promos têm o mesmo código impresso da carta normal. A câmera adiciona a versão normal; quando existem outras, um aviso diz quantas são. Toque nele, ou na sigla da barra de ajustes, e escolha a sua pela imagem.
 - **Cartas "conferir":** vieram da base oficial e ainda não estão nos seus exports. Nome e Card # seguem o padrão da Liga, mas vale conferir na primeira importação.
 - **Artes alternativas fora do catálogo:** quando a base oficial tem mais artes daquela carta do que o catálogo da Liga, a ficha avisa. Ajuste o **Card #** (o sufixo muda por edição, por exemplo `-PA` na OP-07 e `-AA` na OP-11) ou complete o export dessa edição.
 - **Japonesas:** a EB-04 da Liga é só japonesa (Card # com `-JP`); ao escolher essa versão, o idioma muda sozinho para Japonês.
-- **Miniaturas:** imagem oficial do site da Bandai. Nas parallels com uma única arte alternativa, aparece a arte alternativa; nas outras versões, a arte normal.
+- **Miniaturas:** vêm da CDN do TCGplayer. A tarefa semanal baixa do TCGCSV o código de produto de cada carta e escolhe o produto com as mesmas etiquetas do nome da Liga (Parallel, Manga, SP…). Depois de enviar os arquivos novos, rode **Actions → Atualizar catálogo → Run workflow** uma vez para as miniaturas aparecerem. Sem esse código, o app tenta a imagem do site da Bandai, que costuma ser recusada fora do site deles.
 
 ### Dados da LigaOnePiece (pasta `liga-op/`)
 

@@ -200,6 +200,38 @@ details.more summary{cursor:pointer;color:var(--accent);font-weight:700;font-siz
 .actions .row2{display:flex;gap:10px}
 .actions .row2 .btn{flex:1}
 
+/* ---------- resultado da leitura (estilo ManaBox): ficha curta + barra de ajustes, tudo salvo na hora ---------- */
+.cres{display:flex;align-items:center;gap:12px;margin:0 var(--gutr) 0 var(--gut);padding:10px 12px;border-radius:18px;background:#24272D;border:0;text-align:left;color:#fff}
+.cres .nm{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.cres .nm b{font-size:17px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cres .nm>span{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cres .chev{flex:none;width:20px;height:20px;color:var(--muted)}
+.pills{display:grid;grid-template-columns:1.1fr 1.3fr .8fr 1.3fr;margin:0 var(--gutr) 0 var(--gut);border-radius:999px;background:#24272D;min-height:54px;overflow:hidden}
+.pills>button{border:0;background:none;color:#fff;font-weight:800;font-size:15px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-width:0;padding:0 4px}
+.pills>button:active,.qty button:active{background:#2E3138}
+.pills>button small{font:600 11.5px var(--f-mono);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.pills>button .mono{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.pills .fin.on{color:var(--accent)}
+.qty{display:flex;align-items:center;justify-content:center}
+.qty button{width:42px;height:54px;border:0;background:none;color:#fff;font-size:21px}
+.qty output{font:700 16px var(--f-mono);min-width:20px;text-align:center}
+.chooser{display:flex;gap:6px;overflow-x:auto;padding:0 var(--gutr) 0 var(--gut);scrollbar-width:none}
+.chooser button{flex:none;height:38px;padding:0 13px;border-radius:999px;border:1px solid #343949;background:transparent;color:#fff;font-weight:700;font-size:13.5px}
+.chooser button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.film .fb{flex:none;border:0;background:none;padding:0;border-radius:5px;outline:2px solid transparent;outline-offset:2px}
+.film .fb.on{outline-color:var(--accent)}
+.thumb.xl{width:150px;border-radius:9px}
+/* escolha de versão: por cima da câmera, como a lista de impressões do ManaBox */
+.picker{position:absolute;left:0;right:0;bottom:0;z-index:3;background:#141518;border-radius:22px 22px 0 0;padding:14px 0 calc(env(safe-area-inset-bottom,0px) + 18px);display:flex;flex-direction:column;gap:12px}
+.picker .ph{display:flex;gap:8px;align-items:center;padding:0 var(--gutr) 0 var(--gut)}
+.picker .search{flex:1;height:48px}
+.picker .vers{display:flex;gap:12px;overflow-x:auto;padding:4px var(--gutr) 4px var(--gut);scroll-snap-type:x proximity;scroll-padding-inline:var(--gut);scrollbar-width:none}
+.picker .v{flex:none;width:150px;display:flex;flex-direction:column;gap:6px;border:0;background:none;color:#fff;text-align:left;padding:0;scroll-snap-align:start}
+.picker .v .thumb{outline:3px solid transparent;outline-offset:2px}
+.picker .v[aria-pressed="true"] .thumb{outline-color:var(--accent)}
+.picker .v b{font-size:13px;font-weight:700;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.picker .v span{font:500 11.5px var(--f-mono);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.picker .v .lbl2{font:700 11.5px var(--f-body);color:var(--accent)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 104px);z-index:40;background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:10px;font-size:13.5px;font-weight:600;max-width:calc(100% - 32px)}
 @media (prefers-reduced-motion:reduce){.cam .shade{transition:none}}
 </style>
@@ -307,8 +339,17 @@ details.more summary{cursor:pointer;color:var(--accent);font-weight:700;font-siz
   </div>
   <button type="button" class="chipst" id="camChip" hidden></button>
   <div class="camdebug" id="camDebug" hidden><span>O que o leitor vê (toque no aviso do topo para esconder)</span><div id="camDebugImg"></div><span id="camDebugTxt"></span></div>
+  <div class="picker" id="picker" role="dialog" aria-label="Escolher a versão da carta" hidden>
+    <div class="ph">
+      <label class="search"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="color:var(--muted);flex:none"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span class="sr">Filtrar versões</span><input type="search" id="pickQ" placeholder="Filtrar por coleção ou número" autocomplete="off" autocorrect="off" spellcheck="false"></label>
+      <button type="button" class="cbtn" id="pickClose" aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="vers" id="pickList"></div>
+  </div>
   <div class="panel" id="camPanel">
-    <div class="last" id="camLast" hidden></div>
+    <button type="button" class="cres" id="camRes" hidden></button>
+    <div class="pills" id="camPills" role="group" aria-label="Ajustes da carta lida" hidden></div>
+    <div class="chooser" id="camChooser" role="group" aria-label="Idioma" hidden></div>
     <div class="film" id="camFilm"></div>
     <div class="ctrls">
       <button type="button" class="ctl" id="camSearch" style="justify-self:start"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></span>Buscar</button>
@@ -376,9 +417,15 @@ const exAll = () => G().exMain.concat(G().exMore);
 const nm = b => b.pt || b.en || "";              /* One Piece só tem o nome em inglês */
 
 /* ---------- miniaturas ---------- */
+/* url pode trazer várias fontes separadas por "|": se uma falha, a imagem tenta a próxima */
 function thumb(url, cor, size) {
   const fill = (isOP() ? OP_FILL[cor] : TYPE_FILL[cor]) || TYPE_FILL.C;
-  return `<span class="thumb ${size || ""}" style="--t:${fill}" aria-hidden="true">${url ? `<img src="${esc(url)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">` : ""}</span>`;
+  const [first, ...rest] = String(url || "").split("|").filter(Boolean);
+  return `<span class="thumb ${size || ""}" style="--t:${fill}" aria-hidden="true">${first ? `<img src="${esc(first)}"${rest.length ? ` data-alt="${esc(rest.join("|"))}"` : ""} alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="nextImg(this)">` : ""}</span>`;
+}
+function nextImg(el) {
+  const l = (el.dataset.alt || "").split("|").filter(Boolean);
+  if (l.length) { el.dataset.alt = l.slice(1).join("|"); el.src = l[0]; } else el.remove();
 }
 const cardImg = (card, high) => !card ? "" : isOP() ? (OPX ? O.imageUrl(OPX, card) : "") : IDX ? C.imageUrl(IDX, card, high) : "";
 
@@ -414,7 +461,8 @@ function catalogReady() {
   for (const b of batch) {
     if (!isOP() && !b.ck) { const k = findKey(b); if (k) { b.ck = k; changed = true; } }
     const card = b.ck ? (isOP() ? OPX.byKey : IDX.byKey).get(b.ck) : null;
-    if (!b.img && card) { b.img = cardImg(card); changed = true; }
+    /* One Piece: refaz sempre, porque o catálogo novo pode trazer a imagem do TCGplayer */
+    if (card && (!b.img || isOP()) && b.img !== cardImg(card)) { b.img = cardImg(card); changed = true; }
     if (b.verified === undefined) { b.verified = !b.custom; changed = true; }
   }
   if (changed) persist(); else renderAll();
@@ -693,7 +741,7 @@ function setPaused(v) {
 }
 async function openCamera() {
   if (!ready()) return;
-  $("cam").hidden = false; camOpen = true; session = []; forget(); modeIx = 0;
+  $("cam").hidden = false; camOpen = true; session = []; cur = null; forget(); modeIx = 0;
   renderCamPanel(); camChip(""); setPaused(false); pill("Abrindo câmera…", false);
   document.body.style.overflow = "hidden";
   getWorker().then(() => { if (camOpen) setPaused(paused); })
@@ -738,7 +786,7 @@ function setupZoom(track, caps) {
   };
 }
 function closeCamera() {
-  camOpen = false;
+  camOpen = false; closePicker(); $("camChooser").hidden = true;
   if (stream) stream.getTracks().forEach(t => t.stop());
   stream = null; $("video").srcObject = null; $("cam").hidden = true; document.body.style.overflow = "";
   $("torch").setAttribute("aria-pressed", "false");
@@ -803,7 +851,7 @@ async function scanLoop() {
   try {
     await worker_ready_for_camera();
     while (camOpen) {
-      if (!paused && !sheetOpen() && worker && $("video").videoWidth) {
+      if (!paused && !overlayOpen() && worker && $("video").videoWidth) {
         try { await scanOnce(); } catch (e) { /* um quadro ruim não interrompe a leitura */ }
         await sleep(60);
       } else await sleep(200);
@@ -825,7 +873,7 @@ async function scanOnce() {
   if (img === "vazio") { if (++misses >= 4) forget(); if (debug) $("camDebugTxt").textContent = "Faixa vazia ou sem contraste"; return; }
   if (mode.psm !== curPsm) { await worker.setParameters({ tessedit_pageseg_mode: mode.psm }); curPsm = mode.psm; }
   const text = (await worker.recognize(img)).data.text;
-  if (!camOpen || paused || sheetOpen()) return;
+  if (!camOpen || paused || overlayOpen()) return;
   if (isOP()) { scanOP(text, mode, img); return; }
   let parsed = C.parseBottom(text, IDX.sigs, IDX.sigTot);
   const now = Date.now();
@@ -864,21 +912,20 @@ async function scanOnce() {
     const strong = parsed.sig && !parsed.fuzzy && !parsed.merged && tot && r.auto.set.official === tot;
     if (!strong && pend(key) < 2) return;
     forget(); lastKey = key;
-    const e = addEntry(entryFromCard(r.auto, { lang: parsed.langCode }));
-    session.unshift(e);
-    $("frame").classList.add("hit"); setTimeout(() => $("frame").classList.remove("hit"), 600);
-    if (navigator.vibrate) navigator.vibrate(25);
-    camChip(`✓ ${e.pt} · ${e.sig} ${e.num}`, "ok");
-    renderCamPanel(); setPaused(false); fitZone();
+    added(addEntry(entryFromCard(r.auto, { lang: parsed.langCode })));
+    camChip("");
   } else if (r.ranked.length) {
-    /* ambíguo: troca de modo para tentar ler a sigla; só pergunta depois de 3 leituras iguais */
+    /* ambíguo: troca de modo para tentar ler a sigla; depois de 3 leituras iguais, adiciona a mais
+       provável sem perguntar. As outras aparecem primeiro na escolha de versão. */
     modeIx = (modeIx + 1) % MODES.length;
     const key = "amb:" + code;
     if (key === lastKey || pend(key) < 3) return;
     forget(); lastKey = key;
     const list = r.ranked.map(x => x.card);
-    camChip(`${code}: ${list.length} cartas possíveis. Toque para escolher`, "", () => openSheet({ mode: "choose", list, read: parsed }));
-    openSheet({ mode: "choose", list, read: parsed });
+    const e = addEntry(entryFromCard(list[0], { lang: parsed.langCode }));
+    e.alts = list.slice(0, 12).map(c => c.key); persist();
+    added(e);
+    camChip(`${list.length} cartas com ${code}. Toque aqui ou em ${e.sig} para trocar`, "", () => openPicker(e));
   } else {
     modeIx = (modeIx + 1) % MODES.length;
     const key = "nf:" + code;
@@ -914,12 +961,17 @@ function scanOP(text, mode, img) {
   forget(); lastKey = hit.code;
   const cands = O.candidates(OPX, hit.code), card = cands[0];
   const e = addEntry(opEntry(card));
-  session.unshift(e);
+  added(e);
+  if (cands.length > 1) camChip(`${cands.length} versões de ${hit.code}. Toque aqui ou em ${e.sig} para trocar`, "", () => openPicker(e));
+  else camChip("");
+}
+/* carta lida: entra no lote, vira a carta do painel e dá um retorno rápido */
+function added(e) {
+  session.unshift(e); cur = e;
+  $("camChooser").hidden = true;
   $("frame").classList.add("hit"); setTimeout(() => $("frame").classList.remove("hit"), 600);
   if (navigator.vibrate) navigator.vibrate(25);
-  const edit = () => { const i = batch.indexOf(e); if (i >= 0) openSheet({ mode: "edit", index: i }); };
-  camChip(`✓ ${card.name} · ${hit.code}${cands.length > 1 ? ` · ${cands.length} versões, toque para trocar` : ""}`, "ok", cands.length > 1 ? edit : null);
-  renderCamPanel(); setPaused(false); fitZone();
+  renderCamPanel(); setPaused(false);
 }
 function opEntry(card, o) {
   o = o || {};
@@ -927,24 +979,140 @@ function opEntry(card, o) {
   return Object.assign({ card }, O.rowOf(card), { verified: !!card.ok, custom: false, exts, ext: exAll().filter(x => exts.includes(x)).join(", "),
     qual: o.qual || prefs.qual, lang: o.lang || (/-JP$/.test(card.num) ? "JP" : prefs.lang), qty: o.qty || 1 });
 }
+/* ---------- painel da leitura: ficha curta + acabamento, versão, idioma e quantidade ---------- */
+let cur = null;                                   /* linha do lote mostrada no painel */
+const overlayOpen = () => !$("sheet").hidden || !$("picker").hidden;
+const finishes = () => isOP() ? ["", "Foil"] : ["", "Foil", "Reverse Foil"];
+const FIN_LABEL = { "": "Normal", "Foil": "Foil", "Reverse Foil": "Reverse" };
+const extsOf = e => e.exts && e.exts.length ? e.exts.slice() : (e.ext ? e.ext.split(", ") : []);
+const finishOf = e => { const x = extsOf(e); return x.includes("Reverse Foil") ? "Reverse Foil" : x.includes("Foil") ? "Foil" : ""; };
+const cardOf = e => !e || !e.ck || !ready() ? null : (isOP() ? OPX.byKey : IDX.byKey).get(e.ck) || null;
+const isJPCard = e => { if (isOP()) return /-JP$/.test(e.num); const c = cardOf(e); return !!(c && c.set.jp); };
+const keyOf = p => [p.sig, p.num, p.pt || p.en, p.ext, p.qual, p.lang].join("|");
+/* muda uma linha do lote e salva na hora; se ela ficar igual a outra, as duas viram uma */
+function updateEntry(e, f) {
+  Object.assign(e, f); e.key = keyOf(e);
+  const dup = batch.find(b => b !== e && b.key === e.key);
+  if (dup) {
+    dup.qty += e.qty; batch.splice(batch.indexOf(e), 1);
+    session = session.map(x => x === e ? dup : x);
+    if (cur === e) cur = dup;
+    e = dup;
+  }
+  persist(); renderCamPanel();
+  return e;
+}
 function renderCamPanel() {
-  const last = session[0];
-  $("camLast").hidden = !last;
-  if (last) {
-    $("camLast").innerHTML = `${thumb(last.img, last.cor, "")}
-      <span class="nm"><b>${esc(nm(last))} <span class="mono" style="color:var(--muted);font-size:13px;font-weight:600">×${last.qty}</span></b><span><span class="mono">${esc(last.sig)} ${esc(last.num)}</span> · ${esc(last.qual)} · ${esc(langName(last.lang))}</span></span>
-      <button type="button" class="sm" id="camEdit">Editar</button><button type="button" class="sm t" id="camUndo">Desfazer</button>`;
-    $("camEdit").onclick = () => { const i = batch.indexOf(last); if (i >= 0) openSheet({ mode: "edit", index: i }); };
-    $("camUndo").onclick = () => {
-      const i = batch.indexOf(last);
-      if (i >= 0) { last.qty -= 1; if (last.qty <= 0) batch.splice(i, 1); persist(); }
-      session.shift(); lastKey = null; camChip(""); renderCamPanel(); setPaused(paused);
-    };
+  session = session.filter((e, i, a) => batch.includes(e) && a.indexOf(e) === i);
+  if (!cur || !batch.includes(cur)) cur = session[0] || null;
+  const e = cur;
+  $("camRes").hidden = $("camPills").hidden = !e;
+  if (!e) $("camChooser").hidden = true;
+  if (e) {
+    $("camRes").setAttribute("aria-label", `${nm(e)}: abrir todos os detalhes`);
+    $("camRes").innerHTML = `${thumb(e.img, e.cor, "")}<span class="nm"><b>${esc(nm(e))}</b><span>${esc(e.ed || e.edEn || "")}${e.rar ? " · " + esc(e.rar) : ""}${e.qual ? " · " + esc(e.qual) : ""}</span>${needsCheck(e) ? '<span><span class="tag f">conferir na Liga</span></span>' : ""}</span>
+      <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>`;
+    const fin = finishOf(e);
+    $("camPills").innerHTML = `<button type="button" class="fin${fin ? " on" : ""}" data-p="fin" aria-label="Acabamento ${FIN_LABEL[fin]}. Toque para trocar">${FIN_LABEL[fin]}</button>
+      <button type="button" data-p="ver" aria-label="Versão ${esc(e.sig)} ${esc(e.num)}. Toque para trocar"><span class="mono">${esc(e.sig || "—")}</span><small>#${esc(e.num)}</small></button>
+      <button type="button" data-p="lang" aria-label="Idioma ${esc(langName(e.lang))}. Toque para trocar">${esc(LANG_SHORT[e.lang] ?? e.lang)}</button>
+      <span class="qty"><button type="button" data-p="minus" aria-label="${e.qty > 1 ? "Menos uma" : "Tirar do lote"}">−</button><output aria-label="Quantidade">${e.qty}</output><button type="button" data-p="plus" aria-label="Mais uma">+</button></span>`;
   }
   $("camFilm").innerHTML = session.length
-    ? session.slice(0, 14).map(e => thumb(e.img, e.cor, "s")).join("")
+    ? session.slice(0, 14).map((x, i) => `<button type="button" class="fb${x === e ? " on" : ""}" data-s="${i}" aria-label="Mostrar ${esc(nm(x))}">${thumb(x.img, x.cor, "s")}</button>`).join("")
     : `<span class="hint">${esc(G().film)}</span>`;
+  if (camOpen) fitZone();
 }
+$("camRes").onclick = () => { const i = batch.indexOf(cur); if (i >= 0) openSheet({ mode: "edit", index: i }); };
+$("camFilm").onclick = ev => {
+  const b = ev.target.closest("[data-s]"); if (!b) return;
+  cur = session[+b.dataset.s] || cur; $("camChooser").hidden = true; renderCamPanel();
+};
+$("camPills").onclick = ev => {
+  const b = ev.target.closest("[data-p]"); if (!b || !cur) return;
+  const k = b.dataset.p, e = cur;
+  if (k === "fin") {
+    const F = finishes(), next = F[(F.indexOf(finishOf(e)) + 1) % F.length];
+    const exts = extsOf(e).filter(x => !F.includes(x)); if (next) exts.push(next);
+    updateEntry(e, { exts, ext: exAll().filter(x => exts.includes(x)).join(", ") });
+  } else if (k === "plus") updateEntry(e, { qty: e.qty + 1 });
+  else if (k === "minus") {
+    if (e.qty > 1) updateEntry(e, { qty: e.qty - 1 });
+    else { batch.splice(batch.indexOf(e), 1); cur = null; persist(); renderCamPanel(); camChip(""); toast(`${nm(e)} saiu do lote.`); }
+  } else if (k === "lang") {
+    const ch = $("camChooser");
+    if (!ch.hidden) { ch.hidden = true; fitZone(); return; }
+    ch.innerHTML = LANGS.filter(l => l[0]).map(([v, l]) => `<button type="button" data-l="${v}" aria-pressed="${v === e.lang}">${esc(l)}</button>`).join("");
+    ch.hidden = false; fitZone();
+  } else if (k === "ver") openPicker(e);
+};
+$("camChooser").onclick = ev => {
+  const b = ev.target.closest("[data-l]"); if (!b || !cur) return;
+  const v = b.dataset.l, jp = isJPCard(cur);
+  updateEntry(cur, { lang: v });
+  /* o idioma escolhido vale para as próximas cartas (menos o das japonesas) */
+  if (!jp) { prefs = Object.assign({}, prefs, { lang: v }); save(G().prefsKey, prefs); }
+  $("camChooser").hidden = true; fitZone();
+};
+
+/* ---------- escolha de versão (todas as impressões da carta) ---------- */
+let P = null;
+function versionsFor(e) {
+  const items = [], card = cardOf(e);
+  const add = (c, ver, label) => { ver = ver || ""; if (c && !items.some(x => x.card === c && x.ver === ver)) items.push({ card: c, ver, label: label || "" }); };
+  if (isOP()) {
+    const base = card ? card.base : O.baseOf(e.num);
+    if (base) for (const c of O.candidates(OPX, base)) add(c, "", O.label(OPX, c));
+    return items;
+  }
+  for (const k of e.alts || []) add(IDX.byKey.get(k));          /* candidatas da leitura ambígua primeiro */
+  if (card) {
+    add(card);
+    for (const v of C.versions(IDX, card)) add(card, v.sig, v.label);
+    const same = IDX.cards.filter(c => c !== card && c.ne && c.ne === card.ne)
+      .sort((a, b) => (b.set.rel || "").localeCompare(a.set.rel || ""));
+    for (const c of same.slice(0, 80)) add(c);
+  }
+  return items;
+}
+function versionInfo(it) {
+  const c = it.card;
+  if (isOP()) return { code: `${c.set.sig} · ${c.num}`, set: c.set.en, label: it.label.split(" · ").filter(t => t !== c.set.en).join(" · "), name: c.name, img: cardImg(c), cor: c.cor };
+  const L = C.ligaInfo(IDX, c, sigOverrides, it.ver);
+  return { code: `${L.sig} #${L.num}`, set: `${c.set.pt || c.set.en}${c.set.rel ? " · " + c.set.rel.slice(0, 4) : ""}`, label: it.label, name: L.pt, img: cardImg(c, true), cor: L.cor };
+}
+function openPicker(e) {
+  if (!e || !ready()) return;
+  P = { e, items: versionsFor(e).map(it => Object.assign(it, { info: versionInfo(it) })) };
+  $("pickQ").value = ""; $("camChooser").hidden = true;
+  renderPicker();
+  $("picker").hidden = false; camChip("");
+  const sel = $("pickList").querySelector('[aria-pressed="true"]');
+  if (sel) sel.scrollIntoView({ inline: "center", block: "nearest" });
+}
+function renderPicker() {
+  const q = C.fold($("pickQ").value).toLowerCase().trim(), e = P.e;
+  const list = P.items.map((it, i) => [it, i]).filter(([it]) => !q || C.fold(`${it.info.code} ${it.info.set} ${it.info.label} ${it.info.name}`).toLowerCase().includes(q));
+  $("pickList").innerHTML = list.length ? list.map(([it, i]) => {
+    const on = it.card.key === e.ck && it.ver === (e.ver || "");
+    return `<button type="button" class="v" data-v="${i}" aria-pressed="${on}">${thumb(it.info.img, it.info.cor, "xl")}
+      <b>${esc(it.info.set)}</b><span>${esc(it.info.code)}</span>${it.info.label ? `<span class="lbl2">${esc(it.info.label)}</span>` : ""}</button>`;
+  }).join("") : `<span class="hint" style="padding:12px 0">${P.items.length ? "Nenhuma versão com esse filtro." : "Não há outras versões desta carta no catálogo. Use os detalhes para corrigir à mão."}</span>`;
+}
+function closePicker() { $("picker").hidden = true; P = null; }
+$("pickClose").onclick = closePicker;
+$("pickQ").addEventListener("input", () => { if (P) renderPicker(); });
+$("pickList").onclick = ev => {
+  const b = ev.target.closest("[data-v]"); if (!b || !P) return;
+  const it = P.items[+b.dataset.v], e = P.e, c = it.card, exts = extsOf(e);
+  let f;
+  if (isOP()) f = opEntry(c, { exts, qual: e.qual, qty: e.qty, lang: /-JP$/.test(c.num) ? "JP" : /-JP$/.test(e.num) && e.lang === "JP" ? prefs.lang : e.lang });
+  else { const old = cardOf(e); f = entryFromCard(c, { ver: it.ver, exts, qual: e.qual, qty: e.qty, lang: c.set.jp ? "JP" : old && old.set.jp && e.lang === "JP" ? prefs.lang : e.lang }); }
+  closePicker();
+  updateEntry(e, { sig: f.sig, num: f.num, ed: f.ed, edEn: f.edEn, pt: f.pt, en: f.en, rar: f.rar, cor: f.cor, tot: f.tot, verified: f.verified, ver: f.ver || "",
+    exts: f.exts, ext: f.ext, lang: f.lang, custom: false, ck: c.key, img: cardImg(c) });
+  toast("Versão trocada.");
+};
 
 /* ---------- foto da galeria: lê uma vez e abre a ficha ---------- */
 $("galleryBtn").onclick = () => $("gallery").click();
@@ -1008,7 +1176,7 @@ function openSheet(o) {
 }
 function closeSheet() { $("sheet").hidden = true; S = null; if (!camOpen) document.body.style.overflow = ""; }
 $("sheetScrim").onclick = closeSheet;
-document.addEventListener("keydown", e => { if (e.key === "Escape" && sheetOpen()) closeSheet(); });
+document.addEventListener("keydown", e => { if (e.key !== "Escape") return; if (sheetOpen()) closeSheet(); else if (!$("picker").hidden) closePicker(); });
 
 const seg = (name, opts, val) => `<div class="seg" role="group" data-seg="${name}">${opts.map(([v, l]) => `<button type="button" data-v="${esc(v)}" aria-pressed="${v === val}">${esc(l)}</button>`).join("")}</div>`;
 const extSeg = (list, sel) => `<div class="seg ext" role="group" data-multi="1">${list.map(x => `<button type="button" data-x="${esc(x)}" aria-pressed="${sel.includes(x)}">${esc(x)}</button>`).join("")}</div>`;
@@ -1170,10 +1338,11 @@ function saveSheet() {
     if (i >= 0) batch.splice(i, 1);
     const e = addEntry(Object.assign({}, p, { card: c }));
     if (si >= 0) session[si] = e;
+    if (cur === old) cur = e;
     toast("Alterações salvas.");
   } else {
     const e = addEntry(Object.assign({}, p, { card: c }));
-    if (camOpen) { session.unshift(e); if (c) lastKey = isOP() ? c.base : c.key; }
+    if (camOpen) { session.unshift(e); cur = e; if (c) lastKey = isOP() ? c.base : c.key; }
     toast(`${nm(e)} adicionada (${p.qty}×).`);
     if (!camOpen) { $("q").value = ""; runSearch(); }
   }
