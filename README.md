@@ -32,6 +32,7 @@ Na primeira leitura, o app baixa o leitor de texto (Tesseract, cerca de 10 MB). 
 
 - **Início:** o app abre na busca (nome, número ou sigla, com filtros para japonesas, promos e antigas). Abaixo aparecem as últimas cartas adicionadas e um resumo do lote.
 - **Câmera contínua:** o botão redondo âmbar abre a câmera. O app lê só a faixa de baixo da carta (sigla e número): aproxime até essa faixa ocupar o retângulo, mesmo que o resto da carta saia da tela. No Android, use o zoom (1,5× ou 2×) para não precisar chegar tão perto. Cada carta reconhecida entra no lote sozinha; a mesma carta só conta de novo depois de sair e voltar para o retângulo. Use **Pausar**, **Editar** e **Desfazer** no painel de baixo, e **Buscar** quando a carta não for reconhecida.
+- **Reverse foil e cartas com brilho:** quando a leitura normal não acha o número, o app alterna sozinho entre outros modos a cada quadro: binarização local, que separa o texto do brilho holográfico, e imagem invertida, para texto claro em fundo escuro, como a sigla das promos MEP. Ele junta o que cada modo leu: a sigla de um quadro completa o número lido em outro. Essas cartas podem levar 1 ou 2 segundos a mais; mantenha a carta parada no retângulo.
 - **Miniaturas:** imagem oficial da carta (TCGdex; TCGplayer nas japonesas que só ele tem). Sem internet ou sem imagem, aparece uma silhueta na cor do tipo.
 - **Lote:** toque numa carta para mudar versão, extras, qualidade, idioma ou quantidade, ou para removê-la.
 

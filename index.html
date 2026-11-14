@@ -515,6 +515,16 @@ function getWorker() {
   workerReady.catch(() => { workerReady = null; });
   return workerReady;
 }
+/* troca o conteúdo do canvas pela binarização local (fundos com textura, como reverse foil) */
+function localize(c, win, gp) {
+  const g = c.getContext("2d", { willReadFrequently: true }), img = g.getImageData(0, 0, c.width, c.height), d = img.data;
+  const gray = new Uint8Array(c.width * c.height);
+  for (let i = 0; i < gray.length; i++) gray[i] = (d[i * 4] * 299 + d[i * 4 + 1] * 587 + d[i * 4 + 2] * 114) / 1000 | 0;
+  const o = C.localBinarize(gray, c.width, c.height, win, gp);
+  for (let i = 0; i < o.length; i++) d[i * 4] = d[i * 4 + 1] = d[i * 4 + 2] = o[i];
+  g.putImageData(img, 0, 0);
+  return c;
+}
 /* recorta uma faixa da carta, amplia e realça o contraste */
 function band(card, x0, y0, x1, y1, scale, invert) {
   const W = card.width, H = card.height;
@@ -533,22 +543,53 @@ function band(card, x0, y0, x1, y1, scale, invert) {
   g.putImageData(img, 0, 0);
   return c;
 }
-async function ocrNumber(w, card, invert) {
-  await w.setParameters({ tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/ " });
-  return (await w.recognize(band(card, 0, 0.875, 1, 0.99, 2, invert))).data.text;
+async function ocrNumber(w, card, invert, local) {
+  await w.setParameters({ tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/ ", tessedit_pageseg_mode: local ? local.psm : "6" });
+  let c = band(card, 0, 0.875, 1, 0.99, 2, invert);
+  if (local) {
+    /* a binarização local funciona melhor com a faixa em ~220 px de altura */
+    const k = 220 / c.height, r = document.createElement("canvas");
+    r.width = Math.round(c.width * k); r.height = 220;
+    const g = r.getContext("2d", { willReadFrequently: true }); g.imageSmoothingQuality = "high"; g.drawImage(c, 0, 0, r.width, r.height);
+    c = localize(r, local.win, local.gp);
+  }
+  const text = (await w.recognize(c)).data.text;
+  await w.setParameters({ tessedit_pageseg_mode: "6" });
+  return text;
 }
 async function ocrName(w, card) {
   await w.setParameters({ tessedit_char_whitelist: "" });
   return (await w.recognize(band(card, 0.03, 0.02, 0.82, 0.125, 2, false))).data.text;
 }
+/* tenta normal, invertido e as duas binarizações locais; para na primeira leitura com sigla.
+   Uma sigla vista numa tentativa completa o número lido em outra. */
 async function readNumber(w, card) {
-  let p = C.parseBottom(await ocrNumber(w, card, false), IDX.sigs);
-  if (!p.num) p = C.parseBottom(await ocrNumber(w, card, true), IDX.sigs);
-  return p;
+  const tries = [[false], [true], [false, LOCAL_A], [false, LOCAL_B]];
+  let best = null, hint = null;
+  for (const [inv, local] of tries) {
+    const p = C.parseBottom(await ocrNumber(w, card, inv, local), IDX.sigs, IDX.sigTot);
+    if (p.sigHint) hint = hint || p.sigHint;
+    if (p.num && p.sig && !p.fuzzy) return p;
+    if (p.num && (!best || (p.sig && !best.sig) || (p.tot && !best.tot))) best = p;
+  }
+  if (best && !best.sig && hint) best = Object.assign({}, best, { sig: hint });
+  return best || C.parseBottom("", IDX.sigs);
 }
 
 /* ---------- câmera contínua ---------- */
-let stream = null, camOpen = false, paused = false, session = [], lastKey = null, pendKey = null, scanning = false, misses = 0, invert = false;
+let stream = null, camOpen = false, paused = false, session = [], lastKey = null, pendKeys = new Map(), recentTexts = [], scanning = false, misses = 0;
+/* Modos de leitura, alternados a cada quadro até um deles achar o número:
+   - normal: contraste esticado, bom para a maioria das cartas;
+   - local A/B: binarização local, para reverse foil e fundos com brilho holográfico;
+   - invertido: texto claro em fundo escuro (como a sigla das promos MEP). */
+const LOCAL_A = { win: 0.3, gp: 45, psm: "11" }, LOCAL_B = { win: 0.15, gp: 30, psm: "6" };
+const MODES = [
+  { name: "normal", h: 440, psm: "6" },
+  { name: "local A", h: 220, local: LOCAL_A, psm: LOCAL_A.psm },
+  { name: "invertido", h: 440, inv: true, psm: "6" },
+  { name: "local B", h: 220, local: LOCAL_B, psm: LOCAL_B.psm },
+];
+let modeIx = 0, curPsm = null, recentSig = null;   /* recentSig: sigla vista há pouco, para completar leituras só com número */
 const PAUSE_ICON = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
 const PLAY_ICON = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
 function pill(text, live) { $("camPillTxt").textContent = text; $("camDot").classList.toggle("off", !live); }
@@ -565,7 +606,7 @@ function setPaused(v) {
 }
 async function openCamera() {
   if (!IDX) return;
-  $("cam").hidden = false; camOpen = true; session = []; lastKey = pendKey = null;
+  $("cam").hidden = false; camOpen = true; session = []; forget(); modeIx = 0;
   renderCamPanel(); camChip(""); setPaused(false); pill("Abrindo câmera…", false);
   document.body.style.overflow = "hidden";
   getWorker().then(() => { if (camOpen) setPaused(paused); })
@@ -637,7 +678,7 @@ $("torch").onclick = async () => {
 /* Recorta só a faixa do vídeo, na resolução original (levando em conta o object-fit: cover),
    e prepara para o OCR: tons de cinza, contraste esticado e altura de ~440 px
    (o texto do código precisa de uns 25-30 px de altura para o leitor acertar). */
-function grabBand(inv) {
+function grabBand(mode) {
   const v = $("video"), box = $("cam").getBoundingClientRect(), fr = $("frame").getBoundingClientRect();
   const vw = v.videoWidth, vh = v.videoHeight;
   if (!vw) return null;
@@ -645,7 +686,7 @@ function grabBand(inv) {
   const ox = (box.width - vw * s) / 2, oy = (box.height - vh * s) / 2;
   const sx = Math.max(0, (fr.left - box.left - ox) / s), sy = Math.max(0, (fr.top - box.top - oy) / s);
   const sw = Math.min(vw - sx, fr.width / s), sh = Math.min(vh - sy, fr.height / s);
-  const k = Math.min(440 / sh, 2200 / sw);
+  const k = Math.min(mode.h / sh, mode.h * 5 / sw);
   const c = document.createElement("canvas"); c.width = Math.round(sw * k); c.height = Math.round(sh * k);
   const g = c.getContext("2d", { willReadFrequently: true });
   g.imageSmoothingQuality = "high";
@@ -656,8 +697,15 @@ function grabBand(inv) {
   for (; lo < 255; lo++) { acc += hist[lo]; if (acc > n * 0.02) break; }
   acc = 0; for (; hi > 0; hi--) { acc += hist[hi]; if (acc > n * 0.02) break; }
   if (hi - lo < 30) return "vazio";                 /* sem contraste: nada na faixa, pula o OCR */
-  const m = 255 / (hi - lo);
-  for (let i = 0; i < d.length; i += 4) { let y = Math.min(255, Math.max(0, (d[i] - lo) * m)); if (inv) y = 255 - y; d[i] = d[i + 1] = d[i + 2] = y; }
+  if (mode.local) {
+    const gray = new Uint8Array(n);
+    for (let i = 0; i < n; i++) gray[i] = d[i * 4];
+    const o = C.localBinarize(gray, c.width, c.height, mode.local.win, mode.local.gp);
+    for (let i = 0; i < n; i++) d[i * 4] = d[i * 4 + 1] = d[i * 4 + 2] = o[i];
+  } else {
+    const m = 255 / (hi - lo);
+    for (let i = 0; i < d.length; i += 4) { let y = Math.min(255, Math.max(0, (d[i] - lo) * m)); if (mode.inv) y = 255 - y; d[i] = d[i + 1] = d[i + 2] = y; }
+  }
   g.putImageData(img, 0, 0);
   return c;
 }
@@ -677,35 +725,57 @@ async function scanLoop() {
 }
 /* deixa o leitor pronto para a faixa: só letras, números e barra */
 async function worker_ready_for_camera() {
-  try { const w = await getWorker(); await w.setParameters({ tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/ ", tessedit_pageseg_mode: "6" }); } catch (e) {}
+  try { const w = await getWorker(); await w.setParameters({ tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/ ", tessedit_pageseg_mode: "6" }); curPsm = "6"; } catch (e) {}
 }
 /* Lê um quadro. Uma leitura com sigla, número e total coerentes já vale; nas outras, o mesmo resultado
-   precisa aparecer duas vezes. A carta não entra de novo enquanto continuar na faixa. */
+   precisa aparecer de novo. A carta não entra de novo enquanto continuar na faixa. */
+function forget() { lastKey = recentSig = null; pendKeys.clear(); recentTexts = []; }
+/* conta quantas vezes cada resultado apareceu desde a última carta (cada um com seu contador) */
+function pend(key) { const n = (pendKeys.get(key) || 0) + 1; pendKeys.set(key, n); return n; }
 async function scanOnce() {
-  const img = grabBand(invert); if (!img) return;
-  if (img === "vazio") { if (++misses >= 3) lastKey = pendKey = null; if (debug) $("camDebugTxt").textContent = "Faixa vazia ou sem contraste"; return; }
+  const mode = MODES[modeIx];
+  const img = grabBand(mode); if (!img) return;
+  if (img === "vazio") { if (++misses >= 4) forget(); if (debug) $("camDebugTxt").textContent = "Faixa vazia ou sem contraste"; return; }
+  if (mode.psm !== curPsm) { await worker.setParameters({ tessedit_pageseg_mode: mode.psm }); curPsm = mode.psm; }
   const text = (await worker.recognize(img)).data.text;
   if (!camOpen || paused || sheetOpen()) return;
-  const parsed = C.parseBottom(text, IDX.sigs);
+  let parsed = C.parseBottom(text, IDX.sigs, IDX.sigTot);
+  const now = Date.now();
+  recentTexts = recentTexts.filter(x => now - x.at < 3000); recentTexts.push({ t: text, at: now });
+  if (parsed.sig && !parsed.fuzzy) recentSig = { sig: parsed.sig, lang: parsed.lang, at: now };
+  else if (parsed.sigHint) recentSig = { sig: parsed.sigHint, lang: null, at: now };
+  const sigOk = recentSig && now - recentSig.at < 3000;
+  /* só o número, sem sigla: usa a sigla vista há pouco em outro modo (promos como "MEP 086") */
+  if (!parsed.num && parsed.bare && sigOk) parsed = Object.assign({}, parsed, { sig: recentSig.sig, num: parsed.bare, merged: true });
   if (debug) {
     img.style.maxHeight = "90px"; $("camDebugImg").replaceChildren(img);
-    $("camDebugTxt").textContent = `Lido: ${text.trim().replace(/\s+/g, " ") || "(nada)"} → ${parsed.num ? `${parsed.sig || "?"} ${parsed.num}${parsed.tot ? "/" + parsed.tot : ""}` : "sem número"}`;
+    $("camDebugTxt").textContent = `[${mode.name}] Lido: ${text.trim().replace(/\s+/g, " ") || "(nada)"} → ${parsed.num ? `${parsed.sig || "?"} ${parsed.num}${parsed.tot ? "/" + parsed.tot : ""}` : "sem número"}`;
   }
   if (!parsed.num) {
-    invert = !invert;                                /* tenta a outra polaridade (texto claro em fundo escuro) */
-    if (++misses >= 4) lastKey = pendKey = null;
+    modeIx = (modeIx + 1) % MODES.length;           /* tenta outro modo no próximo quadro */
+    if (++misses >= 2 * MODES.length) forget();
     return;
   }
   misses = 0;
-  const r = C.resolve(IDX, parsed, "");
+  let r = C.resolve(IDX, parsed, "");
+  /* número e total sem sigla, ou com mais de uma carta possível: tenta com a sigla vista há pouco */
+  if (!r.auto && !parsed.sig && sigOk) {
+    const r2 = C.resolve(IDX, Object.assign({}, parsed, { sig: recentSig.sig }), "");
+    if (r2.auto) { r = r2; parsed = Object.assign({}, parsed, { sig: recentSig.sig, merged: true }); }
+  }
+  /* poucas candidatas: procura a sigla de uma delas no que foi lido nos últimos quadros */
+  if (!r.auto && r.ranked.length > 1 && r.ranked.length <= 8) {
+    const c = C.pickBySig(r.ranked.map(x => x.card), recentTexts.map(x => x.t));
+    if (c) { r = { auto: c, ranked: r.ranked }; parsed = Object.assign({}, parsed, { sig: c.set.ligaSig || c.set.sig, merged: true }); }
+  }
   const code = `${parsed.sig || ""} ${parsed.num}${parsed.tot ? "/" + parsed.tot : ""}`.trim();
   if (r.auto) {
     const key = r.auto.key;
     if (key === lastKey) return;
     const tot = parsed.tot ? parseInt(String(parsed.tot).replace(/\D/g, ""), 10) : 0;
-    const strong = parsed.sig && tot && r.auto.set.official === tot;
-    if (!strong && key !== pendKey) { pendKey = key; return; }
-    lastKey = key; pendKey = null;
+    const strong = parsed.sig && !parsed.fuzzy && !parsed.merged && tot && r.auto.set.official === tot;
+    if (!strong && pend(key) < 2) return;
+    forget(); lastKey = key;
     const e = addEntry(entryFromCard(r.auto, { lang: parsed.langCode }));
     session.unshift(e);
     $("frame").classList.add("hit"); setTimeout(() => $("frame").classList.remove("hit"), 600);
@@ -713,18 +783,19 @@ async function scanOnce() {
     camChip(`✓ ${e.pt} · ${e.sig} ${e.num}`, "ok");
     renderCamPanel(); setPaused(false); fitZone();
   } else if (r.ranked.length) {
+    /* ambíguo: troca de modo para tentar ler a sigla; só pergunta depois de 3 leituras iguais */
+    modeIx = (modeIx + 1) % MODES.length;
     const key = "amb:" + code;
-    if (key === lastKey) return;
-    if (key !== pendKey) { pendKey = key; return; }
-    lastKey = key; pendKey = null;
+    if (key === lastKey || pend(key) < 3) return;
+    forget(); lastKey = key;
     const list = r.ranked.map(x => x.card);
     camChip(`${code}: ${list.length} cartas possíveis. Toque para escolher`, "", () => openSheet({ mode: "choose", list, read: parsed }));
     openSheet({ mode: "choose", list, read: parsed });
   } else {
+    modeIx = (modeIx + 1) % MODES.length;
     const key = "nf:" + code;
-    if (key === lastKey) return;
-    if (key !== pendKey) { pendKey = key; return; }
-    lastKey = key; pendKey = null;
+    if (key === lastKey || pend(key) < 3) return;
+    forget(); lastKey = key;
     camChip(`Não achei ${code}. Toque para buscar`, "warn", () => goSearch(parsed.num));
   }
 }

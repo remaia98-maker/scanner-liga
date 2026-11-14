@@ -36,49 +36,155 @@
     return pre + rest;
   }
 
-  /* Lê a faixa inferior: sigla, idioma, número e total */
-  function parseBottom(text, sigs) {
-    const out = { sig: null, lang: null, num: null, tot: null };
+  /* Reconhece a sigla num pedaço lido, tolerando o que costuma grudar nela: a marca de regulamento
+     antes ("HPRE") e o idioma depois ("PREPT"). Com o total da coleção lido, aceita também uma letra
+     errada ("PRER" com /131 vira PRE), desde que a coleção tenha esse total. */
+  function sigOf(tok, sigs, tot, sigTot) {
+    if (!tok || !sigs) return null;
+    const cands = [[tok, null]];
+    const lm = tok.match(/^([A-Z0-9]{2,6}?)(PT|EN|JP|ES|FR|DE|IT|KO)$/);
+    if (lm) cands.push([lm[1], lm[2]]);
+    if (/^[A-J][A-Z]/.test(tok)) { cands.push([tok.slice(1), null]); if (lm) cands.push([lm[1].slice(1), lm[2]]); }
+    for (const [t, lang] of cands) if (t.length >= 2 && sigs.has(t)) return { sig: t, lang, fuzzy: false };
+    if (tot && sigTot) {
+      for (const [t, lang] of cands) {
+        if (t.length < 3) continue;
+        for (const [sg, tots] of sigTot) if (tots.has(tot) && Math.abs(sg.length - t.length) <= 1 && lev(sg, t) <= 1) return { sig: sg, lang, fuzzy: true };
+      }
+    }
+    return null;
+  }
+
+  /* Lê a faixa inferior: sigla, idioma, número e total.
+     sigTot (opcional): Map sigla -> Set de totais, para corrigir siglas com uma letra errada. */
+  function parseBottom(text, sigs, sigTot) {
+    const out = { sig: null, lang: null, num: null, tot: null, fuzzy: false, sigHint: null, bare: null };
     const T = String(text || "").toUpperCase().replace(/[\\|]/g, "/").replace(/[^\w/\n ]+/g, " ");
     let best = null;
     for (const line of T.split(/\n+/)) {
-      const re = /([A-Z]{0,4}[0-9OILSBQDZ]{1,3})\s*\/\s*([A-Z]{0,4}[0-9OILSBQDZ]{2,3})/g;
+      const re = /([A-Z]{0,5}[0-9OILSBQDZ]{1,3})\s*\/\s*([A-Z]{0,4}[0-9OILSBQDZ]{2,3})/g;
       let m;
       while ((m = re.exec(line))) {
-        const num = fixDigits(m[1]), tot = fixDigits(m[2]);
+        let num = fixDigits(m[1]), tot = fixDigits(m[2]);
         if (!/\d$/.test(num) || !/^\D*\d+$/.test(tot)) continue;
+        const nTot = parseInt(tot.replace(/\D/g, ""), 10);
+        let sig = null, lang = null, fuzzy = false;
+        /* sigla grudada no número: "PRE019/131" */
+        const pm = num.match(/^([A-Z]{2,5})(\d+)$/);
+        if (pm && !NUM_PREFIX.test(num)) {
+          const g = sigOf(pm[1], sigs, nTot, sigTot);
+          if (g) { sig = g.sig; lang = g.lang; fuzzy = g.fuzzy; num = pm[2]; }
+          else num = pm[2];
+        }
         const before = line.slice(0, m.index).trim().split(/\s+/).filter(Boolean);
-        let sig = null, lang = null;
-        for (let i = before.length - 1; i >= Math.max(0, before.length - 3); i--) {
+        for (let i = before.length - 1; !sig && i >= Math.max(0, before.length - 3); i--) {
           const t = before[i];
           if (!lang && LANGS.has(t)) { lang = t; continue; }
-          if (!sig && sigs && sigs.has(t)) { sig = t; break; }
+          const g = sigOf(t, sigs, nTot, sigTot);
+          if (g) { sig = g.sig; lang = lang || g.lang; fuzzy = g.fuzzy; }
         }
-        const nTot = parseInt(tot.replace(/\D/g, ""), 10), nNum = parseInt(num.replace(/\D/g, ""), 10);
-        const score = (sig ? 4 : 0) + (lang ? 1 : 0) + (nNum <= nTot + 150 ? 1 : -2);
-        if (!best || score > best.score) best = { score, sig, lang, num, tot };
+        const nNum = parseInt(num.replace(/\D/g, ""), 10);
+        const score = (sig ? (fuzzy ? 3 : 4) : 0) + (lang ? 1 : 0) + (nNum <= nTot + 150 ? 1 : -2);
+        if (!best || score > best.score) best = { score, sig, lang, num, tot, fuzzy };
       }
-      /* Promos sem barra: "SVP EN 050", "MEP 012" */
-      if (!best && sigs) {
+      /* Promos sem barra: "SVP EN 050", "MEP 012", "MEPPT 012" */
+      if (sigs) {
         const toks = line.trim().split(/\s+/);
         for (let i = 0; i < toks.length; i++) {
-          if (!sigs.has(toks[i])) continue;
-          let j = i + 1, lang = null;
-          if (toks[j] && LANGS.has(toks[j])) { lang = toks[j]; j++; }
-          if (toks[j] && /^[0-9OILSBQDZ]{2,3}$/.test(toks[j])) {
-            best = { score: 3, sig: toks[i], lang, num: fixDigits(toks[j]), tot: null };
+          const g = sigOf(toks[i], sigs);
+          if (!g) continue;
+          let j = i + 1, lang = g.lang;
+          if (!lang && toks[j] && LANGS.has(toks[j])) { lang = toks[j]; j++; }
+          if (lang && !out.sigHint) out.sigHint = g.sig;      /* sigla com idioma, mesmo sem número */
+          if (!best && toks[j] && /^[0-9OILSBQDZ]{2,3}$/.test(toks[j]) && /\d/.test(toks[j])) {
+            best = { score: 3, sig: g.sig, lang, num: fixDigits(toks[j]), tot: null, fuzzy: false };
             break;
           }
         }
       }
     }
+    /* número solto de 3 dígitos ("086"), para juntar com uma sigla lida em outro quadro */
+    if (!best) {
+      const b = T.split(/\s+/).find(t => /^[0-9OILSBQDZ]{3}$/.test(t) && (t.match(/\d/g) || []).length >= 2);
+      if (b) out.bare = fixDigits(b);
+    }
     /* Promo japonesa: "030/SV-P", "123/S-P", "045/M-P" */
     if (!best || !best.sig) {
       const m = T.match(/\b([0-9OILSBQDZ]{3})\s*\/\s*(SV|SM|S|M|XY|BW)\s*-?\s*P\b/);
-      if (m && sigs && sigs.has(m[2] + "-P")) best = { score: 9, sig: m[2] + "-P", lang: "JP", num: fixDigits(m[1]), tot: null };
+      if (m && sigs && sigs.has(m[2] + "-P")) best = { score: 9, sig: m[2] + "-P", lang: "JP", num: fixDigits(m[1]), tot: null, fuzzy: false };
     }
-    if (best) Object.assign(out, { sig: best.sig, lang: best.lang, num: best.num, tot: best.tot });
+    if (best) Object.assign(out, { sig: best.sig, lang: best.lang, num: best.num, tot: best.tot, fuzzy: !!best.fuzzy });
     out.langCode = out.lang ? LANGMAP[out.lang] : undefined;
+    return out;
+  }
+
+
+  /* Desempata uma leitura ambígua (mesmo número e total em coleções diferentes): procura a sigla de cada
+     candidata nos textos lidos há pouco, com uma letra de tolerância nas siglas de 3+ letras.
+     Devolve a carta só se exatamente uma coleção aparecer. */
+  function pickBySig(cands, texts) {
+    const toks = new Set();
+    for (const t of texts) for (const w of String(t || "").toUpperCase().split(/[^A-Z0-9]+/)) {
+      if (w.length < 2) continue;
+      toks.add(w);
+      const lm = w.match(/^([A-Z0-9]{2,6}?)(PT|EN|JP|ES|FR|DE|IT|KO)$/); if (lm) toks.add(lm[1]);
+      if (/^[A-J][A-Z]/.test(w)) { toks.add(w.slice(1)); if (lm) toks.add(lm[1].slice(1)); }
+    }
+    const hit = new Map();
+    for (const c of cands) {
+      const sgs = [c.set.sig, c.set.ligaUp].filter(Boolean);
+      for (const t of toks) for (const sg of sgs) {
+        if (sg.length < 3) continue;          /* siglas de 2 letras aparecem demais no ruído do OCR */
+        if (t === sg || (Math.abs(t.length - sg.length) <= 1 && lev(t, sg) <= 1)) hit.set(c.set.id, c);
+      }
+    }
+    return hit.size === 1 ? [...hit.values()][0] : null;
+  }
+
+  /* Binarização local (Sauvola) para fundos com textura, como as cartas reverse foil.
+     g: tons de cinza (Uint8Array, w*h). Marca como texto o pixel mais escuro que a vizinhança
+     (janela = win * altura) e entre os gp% mais escuros da faixa; depois apaga manchas grandes
+     (borda, brilho holográfico) e pontinhos. Devolve Uint8Array com 0 (texto) e 255 (fundo). */
+  function localBinarize(g, w, h, win, gp) {
+    const W = w + 1, S = new Float64Array(W * (h + 1)), Q = new Float64Array(W * (h + 1)), hist = new Uint32Array(256);
+    for (let y = 0; y < h; y++) {
+      let rs = 0, rq = 0;
+      for (let x = 0; x < w; x++) {
+        const v = g[y * w + x]; hist[v]++; rs += v; rq += v * v;
+        S[(y + 1) * W + x + 1] = S[y * W + x + 1] + rs; Q[(y + 1) * W + x + 1] = Q[y * W + x + 1] + rq;
+      }
+    }
+    let gthr = 255;
+    if (gp < 100) { let acc = 0; for (gthr = 0; gthr < 255; gthr++) { acc += hist[gthr]; if (acc >= w * h * gp / 100) break; } }
+    const r = Math.max(1, Math.round(win * h / 2)), out = new Uint8Array(w * h).fill(255), mask = new Uint8Array(w * h);
+    for (let y = 0; y < h; y++) {
+      const y0 = Math.max(0, y - r), y1 = Math.min(h, y + r + 1);
+      for (let x = 0; x < w; x++) {
+        const v = g[y * w + x]; if (v > gthr) continue;
+        const x0 = Math.max(0, x - r), x1 = Math.min(w, x + r + 1), n = (y1 - y0) * (x1 - x0);
+        const sum = S[y1 * W + x1] - S[y0 * W + x1] - S[y1 * W + x0] + S[y0 * W + x0];
+        const sq = Q[y1 * W + x1] - Q[y0 * W + x1] - Q[y1 * W + x0] + Q[y0 * W + x0];
+        const m = sum / n, sd = Math.sqrt(Math.max(0, sq / n - m * m));
+        if (v < m * (1 + 0.15 * (sd / 128 - 1))) mask[y * w + x] = 1;
+      }
+    }
+    /* componentes conectados (4 vizinhos): fica só o que tem tamanho de letra */
+    const stack = new Int32Array(w * h), seen = new Uint8Array(w * h), comp = new Int32Array(w * h);
+    const minSz = h * h * 0.0008;
+    for (let i = 0; i < w * h; i++) {
+      if (!mask[i] || seen[i]) continue;
+      let sp = 0, n = 0, x0 = w, x1 = 0, y0 = h, y1 = 0; stack[sp++] = i; seen[i] = 1;
+      while (sp) {
+        const j = stack[--sp]; comp[n++] = j;
+        const x = j % w, y = (j - x) / w;
+        if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+        if (x > 0 && mask[j - 1] && !seen[j - 1]) { seen[j - 1] = 1; stack[sp++] = j - 1; }
+        if (x < w - 1 && mask[j + 1] && !seen[j + 1]) { seen[j + 1] = 1; stack[sp++] = j + 1; }
+        if (y > 0 && mask[j - w] && !seen[j - w]) { seen[j - w] = 1; stack[sp++] = j - w; }
+        if (y < h - 1 && mask[j + w] && !seen[j + w]) { seen[j + w] = 1; stack[sp++] = j + w; }
+      }
+      if (y1 - y0 + 1 <= h * 0.4 && x1 - x0 + 1 <= h * 1.2 && n >= minSz) for (let k = 0; k < n; k++) out[comp[k]] = 0;
+    }
     return out;
   }
 
@@ -123,8 +229,10 @@
     }
     for (const s of sets) s.ligaUp = s.ligaSig.toUpperCase();
     const sigs = new Set(sets.flatMap(s => [s.sig, s.ligaUp]).filter(Boolean));
+    const sigTot = new Map();
+    for (const s of sets) if (s.official) for (const g of [s.sig, s.ligaUp]) if (g) { if (!sigTot.has(g)) sigTot.set(g, new Set()); sigTot.get(g).add(s.official); }
     const byKey = new Map(cards.map(c => [c.key, c]));
-    return { sets, byId, cards, byKey, sigs, liga: cat.liga || {}, ligaSets: cat.ligaSets || {}, variants: cat.variants || {}, img: cat.img || {} };
+    return { sets, byId, cards, byKey, sigs, sigTot, liga: cat.liga || {}, ligaSets: cat.ligaSets || {}, variants: cat.variants || {}, img: cat.img || {} };
   }
 
   /* Ordena as cartas candidatas a partir do que o OCR leu */
@@ -262,6 +370,6 @@
     return lines.join("\n") + "\n";
   }
 
-  const api = { fold, norm, normNum, ligaNum, formatNum, versions, imageUrl, fixDigits, parseBottom, nameScore, readLinesOf, buildIndex, resolve, search, ligaInfo, buildCSV, LANGMAP };
+  const api = { pickBySig, localBinarize, fold, norm, normNum, ligaNum, formatNum, versions, imageUrl, fixDigits, parseBottom, nameScore, readLinesOf, buildIndex, resolve, search, ligaInfo, buildCSV, LANGMAP };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.LigaCore = api;
 })(typeof window !== "undefined" ? window : globalThis);
