@@ -123,11 +123,13 @@ for (sig, num) in cards:
     if b and num == b:
         have_base[sig].add(b)
 alts = Counter()                  # código-base -> nº de artes alternativas na base oficial
+alt_packs = defaultdict(list)     # código-base -> [(sufixo da arte "_p2", sigla da edição onde saiu)]
 added, skipped = 0, Counter()
 for cid, c in official.items():
     b = cid.split("_")[0]
     if "_" in cid:
         alts[b] += 1
+        alt_packs[b].append(("_" + cid.split("_", 1)[1], pack_sig(c.get("pack_id"))))
         continue
     sig = pack_sig(c.get("pack_id"))
     if not sig:
@@ -162,7 +164,39 @@ for (sig, name), rows in by_set_name.items():
                 row[2] = f"{name} ({row[1][-3:]})"
 
 # ---------------------------------------------------------------------------
-# 3. Miniaturas: código do produto no TCGplayer (a imagem da Bandai não abre fora do site deles).
+# 3a. Arte de cada versão: a arte alternativa oficial (OP07-038_p2) que saiu na mesma edição da
+#     versão na Liga (ex.: a SPR da EB-02). Na edição de origem, se a carta só tem uma arte
+#     alternativa, é ela (_p1). Promos (PC-01) ficam de fora: lá a mesma carta tem várias versões
+#     de evento com a mesma arte, e a base oficial não diz qual é qual.
+arts = {}
+for key, row in cards.items():
+    sig, num = row[0], row[1]
+    b = base_code(num)
+    if not b or sig == "PC-01" or not alt_packs.get(b):
+        continue
+    is_home = sig == home.get(b.split("-")[0])
+    if num == b and is_home:
+        continue                                  # a carta normal da edição de origem
+    same = [suf for suf, s in alt_packs[b] if s == sig]
+    if len(same) == 1:
+        arts[key] = same[0]
+    elif not same and is_home and num != b and alts[b] == 1:
+        arts[key] = alt_packs[b][0][0]
+# Promos: só o caso seguro, uma única versão "Alternate Art" na Liga e uma única arte alternativa
+# oficial lançada fora das coleções (promo ou "Other Product Card").
+promo_aa = defaultdict(list)
+for key, row in cards.items():
+    b = base_code(row[1])
+    if row[0] == "PC-01" and b and row[1] != b and (row[1].endswith("-AA") or "alternate art" in row[2].lower()):
+        promo_aa[b].append(key)
+for b, keys in promo_aa.items():
+    offs = [suf for suf, sg in alt_packs.get(b, []) if sg in (None, "PC-01")]
+    if len(keys) == 1 and len(offs) == 1:
+        arts[keys[0]] = offs[0]
+print(f"Artes alternativas oficiais ligadas às versões: {len(arts)}")
+
+# ---------------------------------------------------------------------------
+# 3b. Miniaturas: código do produto no TCGplayer (a imagem da Bandai não abre fora do site deles).
 #    Cada carta pega o produto com o mesmo código impresso cujas etiquetas entre parênteses
 #    (Parallel, Manga, SP, Pre-Release...) mais se parecem com as do nome da Liga.
 TAG_RE = re.compile(r"\(([^)]*)\)")
@@ -175,7 +209,9 @@ def tags_of(name, num=""):
     for part in suf.split("-"):
         if part in SUFFIX_TAGS:
             t.add(SUFFIX_TAGS[part])
-    return {w for x in t for w in re.split(r"[\s/]+", x) if w}
+    # palavras soltas, sem pontuação: "Mini Case Set Vol. 3 Ryuda Artwork" -> mini, case, set, vol, 3, ryuda...
+    words = {w for x in t for w in re.findall(r"[a-z0-9]+", x)}
+    return words - {"op", "p"}
 
 
 pids = {}
@@ -202,7 +238,16 @@ else:
 idx = {s: i for i, s in enumerate(order)}
 count = Counter(row[0] for row in cards.values())
 out_sets = [[s, sets[s], kind(s, sets[s]), count[s]] for s in order]
-out_cards = sorted(([idx[r[0]], r[1], r[2], r[3], r[4], r[5]] + ([pids[k]] if k in pids else []) for k, r in cards.items()), key=lambda r: (r[0], r[1]))
+def out_row(k, r):
+    row = [idx[r[0]], r[1], r[2], r[3], r[4], r[5]]
+    if k in arts:
+        row += [pids.get(k, 0), arts[k]]          # [..., código TCGplayer, arte "_p2"]
+    elif k in pids:
+        row += [pids[k]]
+    return row
+
+
+out_cards = sorted((out_row(k, r) for k, r in cards.items()), key=lambda r: (r[0], r[1]))
 out = {"game": "op", "sets": out_sets, "home": home, "cards": out_cards,
        "alts": {k: v for k, v in alts.items()}}
 with open(OUT, "w", encoding="utf-8") as fh:

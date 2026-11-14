@@ -63,7 +63,7 @@ Toque em **One Piece** no seletor do topo. O botão da câmera e os destaques fi
 - **Cartas "conferir":** vieram da base oficial e ainda não estão nos seus exports. Nome e Card # seguem o padrão da Liga, mas vale conferir na primeira importação.
 - **Artes alternativas fora do catálogo:** quando a base oficial tem mais artes daquela carta do que o catálogo da Liga, a ficha avisa. Ajuste o **Card #** (o sufixo muda por edição, por exemplo `-PA` na OP-07 e `-AA` na OP-11) ou complete o export dessa edição.
 - **Japonesas:** a EB-04 da Liga é só japonesa (Card # com `-JP`); ao escolher essa versão, o idioma muda sozinho para Japonês.
-- **Miniaturas:** imagem oficial (mesmo código da Bandai) servida pelo onepiece.gg, que funciona sem configurar nada. Se ela falhar, o app tenta a CDN do TCGplayer (código de produto que a tarefa semanal baixa do TCGCSV) e por último o site da Bandai, que costuma recusar imagens abertas fora do site deles.
+- **Miniaturas:** imagem oficial (mesmo código da Bandai) servida pelo onepiece.gg, que funciona sem configurar nada. Cada versão usa a sua arte: a atualização liga parallel, SP, SPR e alternativas à arte oficial que saiu na mesma edição (`OP07-038_p1`, `_p2`...). Algumas versões não têm arte na lista oficial da Bandai, como as do Mini Case Set e várias promos de evento. Para essas, a imagem certa vem da CDN do TCGplayer, com o código de produto que a tarefa semanal baixa do TCGCSV; até a tarefa rodar, elas aparecem com a arte normal. Por último, o app tenta o site da Bandai, que costuma recusar imagens abertas fora do site deles.
 
 ### Dados da LigaOnePiece (pasta `liga-op/`)
 

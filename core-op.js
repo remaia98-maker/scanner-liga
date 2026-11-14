@@ -18,7 +18,7 @@
     const sets = cat.sets.map(s => ({ sig: s[0], en: s[1], kind: s[2], total: s[3], up: s[0].toUpperCase() }));
     const cards = cat.cards.map(c => {
       const set = sets[c[0]], base = baseOf(c[1]);
-      return { set, num: c[1], base, name: c[2], rar: c[3], cor: c[4], ok: !!c[5], pid: c[6] || 0, nn: norm(c[2]), key: set.sig + "|" + c[1] };
+      return { set, num: c[1], base, name: c[2], rar: c[3], cor: c[4], ok: !!c[5], pid: c[6] || 0, art: c[7] || "", nn: norm(c[2]), key: set.sig + "|" + c[1] };
     });
     const byBase = new Map();
     for (const c of cards) if (c.base) { if (!byBase.has(c.base)) byBase.set(c.base, []); byBase.get(c.base).push(c); }
@@ -116,18 +116,22 @@
   }
 
   /* Endereços da imagem, em ordem de tentativa, separados por "|" (a tela passa para o próximo
-     quando um falha). Todos usam o código oficial da Bandai (OP01-001, e OP01-001_p1 para a
-     primeira arte alternativa):
-     1. static.dotgg.gg (onepiece.gg), que abre imagens fora do próprio site;
-     2. CDN do TCGplayer, quando a atualização semanal trouxe o código do produto;
-     3. site da Bandai, que costuma recusar imagens abertas fora do site deles. */
+     quando um falha). As fontes oficiais usam o código da Bandai: OP01-001 é a arte normal e
+     OP01-001_p1, _p2... as alternativas (o catálogo diz qual arte é de cada versão).
+     - static.dotgg.gg (onepiece.gg), que abre imagens fora do próprio site;
+     - CDN do TCGplayer (código do produto, da atualização semanal). Vem primeiro nas versões
+       sem arte oficial (Mini Case Set, promos de evento), porque só ele tem a arte certa delas;
+     - site da Bandai, que costuma recusar imagens abertas fora do site deles. */
   function imageUrl(idx, c) {
     if (!c) return "";
+    const id = c.base ? c.base + (c.art || "") : "";
+    const variant = !!c.base && (c.num !== c.base || c.set.sig !== idx.home[prefixOf(c.base)]);
+    const tp = c.pid ? "https://tcgplayer-cdn.tcgplayer.com/product/" + c.pid + "_400w.jpg" : "";
+    const tpFirst = tp && variant && !c.art;
     const out = [];
-    let id = c.base || "";
-    if (id && prefixOf(id) !== "P" && c.set.sig === idx.home[prefixOf(id)] && c.num !== id && !/-JP$/.test(c.num) && idx.alts[id] === 1) id += "_p1";
+    if (tpFirst) out.push(tp);
     if (id) out.push("https://static.dotgg.gg/onepiece/card/" + id + ".webp");
-    if (c.pid) out.push("https://tcgplayer-cdn.tcgplayer.com/product/" + c.pid + "_400w.jpg");
+    if (tp && !tpFirst) out.push(tp);
     if (id) out.push("https://en.onepiece-cardgame.com/images/cardlist/card/" + id + ".png");
     return out.join("|");
   }
